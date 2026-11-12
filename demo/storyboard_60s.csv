@@ -1,0 +1,53 @@
+shot,start_s,end_s,dur_s,type,framing,visual,motion,transition_in,sfx,purpose,_orig
+1,0.00,1.10,1.10,P,"A-cam guest MCU, punch 115%","Guest mid-story, eyes to host",static; punched-in crop,"—(first frame, cold open)",none — voice from frame 1,"HOOK: open on the most extreme claim, caption already on screen",1
+2,1.10,2.25,1.15,B,B-roll wide,"Aquarium tank at night, octopus pressed against glass",push-in 100→106%,hard cut,soft whoosh (-24 dB) on cut,"Illustrate ""aquarium"" the instant it is spoken",2
+3,2.25,3.25,1.00,B,B-roll macro,Arm sliding over the tank rim,static,hard cut,"wet squelch, low","Literal visual of ""crawled""",3
+4,3.25,4.20,0.95,B,B-roll low angle,Wet trail across a concrete floor,push-in 100→105%,hard cut,—,"Literal visual of ""across the floor""",4
+5,4.20,4.95,0.75,B,B-roll close,"Floor drain grate, water draining",static,hard cut,drain gurgle,"""drain pipe""",5
+6,4.95,5.75,0.80,B,B-roll aerial,"Harbour at dawn, open sea",slow drift right,hard cut,whoosh into wide,"Payoff of sentence 1: ""into the ocean""",6
+7,5.75,6.85,1.10,P,A-cam guest MCU 100%,Guest shrugs,static (wide framing = punch-out),hard cut,—,Return to speaker = credibility; reset framing,7
+8,6.85,8.05,1.20,B,B-roll medium,"Empty aquarium corridor, morning light",push-in,hard cut,room tone,"""Nobody saw it""",8
+9,8.05,8.90,0.85,B,B-roll insert,Close-up of wet streak ending at the drain,static,hard cut,—,Evidence shot,9
+10,8.90,9.75,0.85,B,B-roll insert — angle 2,Close-up of wet streak ending at the drain (second angle / tighter),static,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,9
+11,9.75,10.85,1.10,P,B-cam host reaction,"Host leans back, eyebrows up",static,hard cut,—,Reaction = permission for viewer to be surprised; caption keeps guest words,10
+12,10.85,12.75,1.90,P,"A-cam guest, punch 120%","Guest leans in: ""that's not even rare""","static, tightest framing",hard cut (jump),"low impact hit under ""rare""",Escalation beat — tightest punch on the key word,11
+13,12.75,14.05,1.30,B,B-roll medium,Octopus flowing over reef rocks,tracking with subject,hard cut,—,Context: the animal itself,12
+14,14.05,15.25,1.20,B,Motion graphic,Silhouette of octopus; beak circled in caption-green ring that draws on,ring stroke 0→100% in 8 f,hard cut,UI tick on ring complete,"Explain ""only hard part = beak"" visually",13
+15,15.25,16.45,1.20,B,B-roll macro,Beak close-up (stock/footage),push-in,hard cut,—,Proof shot,14
+16,16.45,17.85,1.40,P,A-cam guest MCU,Guest gestures a small gap with fingers,static,hard cut,—,Speaker sells the rule,15
+17,17.85,19.05,1.20,B,B-roll close,Octopus squeezing through a rock crack,static,hard cut,squeeze/stretch foley,Literal,16
+18,19.05,20.25,1.20,B,B-roll tighter,"Same action, last arm disappearing",static,hard cut,—,Completion of action (2-shot mini sequence),17
+19,20.25,21.45,1.20,P,A-cam guest wide 100%,Hands show coin size,static,hard cut,—,Gesture needs the wider framing,18
+20,21.45,22.85,1.40,B,B-roll medium,Octopus passing through a narrow tube (lab footage),static,hard cut,—,"""five-kilo octopus""",19
+21,22.85,24.05,1.20,B,Insert,"Coin on dark table, top-down",push-in 100→110%,hard cut,coin clink,Size comparison,20
+22,24.05,24.85,0.80,P,B-cam host laughing,Host laughs,static,hard cut,—,Caption shows *LAUGHS* tag — emotional beat,21
+23,24.85,26.05,1.20,P,A-cam guest punch 112%,Guest continues,static,hard cut,—,Back to story,22
+24,26.05,27.35,1.30,B,B-roll wide,Lab tank with jar inside,push-in,hard cut,—,Setup,23
+25,27.35,28.10,0.75,B,B-roll close,Octopus inside jar turning the lid from inside,static,hard cut,glass creak,"Literal ""unscrew jars from the inside""",24
+26,28.10,28.85,0.75,B,B-roll close — angle 2,Octopus inside jar turning the lid from inside (second angle / tighter),static,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,24
+27,28.85,30.05,1.20,B,B-roll close,Lid pops off,static,hard cut,pop + small impact,Micro-payoff,25
+28,30.05,31.05,1.00,P,A-cam guest MCU,Guest grinning,static,hard cut,—,Speaker,26
+29,31.05,32.45,1.40,B,B-roll wide,Aquarium lamp glowing above tank at night,static,hard cut,electrical hum fades in,Setup for next gag,27
+30,32.45,33.45,1.00,B,B-roll close,Water jet hits the lamp → flicker → 4 black frames,static; 4-frame black,hard cut,zap + hum cuts out,"Visual gag on ""short-circuit lights""",28
+31,33.45,34.85,1.40,B,B-roll macro,Single octopus eye in the dark,push-in 100→108%,hard cut from black,low drone swell,"Creepy ""they don't like the brightness""",29
+32,34.85,36.05,1.20,P,A-cam guest MCU,Guest taps temple,static,hard cut,—,Speaker,30
+33,36.05,37.45,1.40,B,B-roll overhead,Arms moving independently,static,hard cut,—,"""Two thirds of their neurons are in their arms""",31
+34,37.45,38.65,1.20,B,B-roll close,One arm curling around a shell,static,hard cut,—,"Each arm ""thinking""",32
+35,38.65,40.05,1.40,B,B-roll close,Another arm probing a crevice,static,hard cut,—,Repetition = proof,33
+36,40.05,41.85,1.80,P,A-cam guest punch 115%,"""…not luck.""",static,hard cut (jump),"low impact on ""luck""",Turn of the story: from facts to menace,34
+37,41.85,43.05,1.20,B,B-roll ECU,Octopus eye opening,static,hard cut,—,Menace,35
+38,43.05,44.85,1.80,P,B-cam host reaction,Host slowly shakes head,static,hard cut,—,Reaction holds longer = tension,36
+39,44.85,46.15,1.30,B,B-roll medium,Octopus watching a keeper through the glass,rack-focus feel,hard cut,—,"""It's watching you""",37
+40,46.15,46.90,0.75,B,Insert,Feeding-schedule whiteboard / wall clock,push-in,hard cut,clock tick,"""learning the schedule""",38
+41,46.90,47.65,0.75,B,Insert — angle 2,Feeding-schedule whiteboard / wall clock (second angle / tighter),push-in,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,38
+42,47.65,48.40,0.75,B,B-roll wide,"Keeper leaves, lights switch off",static,hard cut,light switch clack,Night falls,39
+43,48.40,49.15,0.75,B,B-roll wide — angle 2,"Keeper leaves, lights switch off (second angle / tighter)",static,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,39
+44,49.15,50.45,1.30,B,B-roll close,Tank lid left slightly open,push-in 100→110%,hard cut,tension riser starts (2 s),Setup,40
+45,50.45,51.35,0.90,B,B-roll macro,Arm tip slips out of the lid gap,static,hard cut,—,Payoff,41
+46,51.35,52.25,0.90,B,B-roll macro — angle 2,Arm tip slips out of the lid gap (second angle / tighter),static,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,41
+47,52.25,53.45,1.20,P,A-cam guest wide 100%,"Guest laughs, sits back",static,hard cut,riser stops dead,Release,42
+48,53.45,54.85,1.40,P,A-cam guest punch 115%,"""I'd never keep one.""",static,hard cut (jump),—,Personal verdict,43
+49,54.85,56.45,1.60,P,B-cam host reaction,"Host: ""why?""",static,hard cut,—,Set up the punchline,44
+50,56.45,57.35,0.90,B,B-roll low angle,Octopus crossing a dark floor toward camera,slow push-in,hard cut,wet steps foley,Final image of menace,45
+51,57.35,58.25,0.90,B,B-roll low angle — angle 2,Octopus crossing a dark floor toward camera (second angle / tighter),slow push-in,hard cut,—,Split long B-roll into two angles to hold ~1 s rhythm,45
+52,58.25,60.00,1.75,P,A-cam guest punch 120%,"""…because it would win.""",static,hard cut → loops to shot 1,music button / hard stop on last word,"Punchline + seamless loop into ""An octopus once…""",46

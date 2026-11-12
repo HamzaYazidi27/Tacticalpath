@@ -1,0 +1,55 @@
+{
+  "_about": "Raw measurements taken in this session. 'measured' = computed from pixels/metadata; 'observed' = seen by eye on frames; see evidence/ACCESS_LOG.md for what could not be accessed.",
+  "channel_metadata": {
+    "source": "youtube.com/@Tacticalpath channel page via yt-dlp (flat listing), 2026-11-12",
+    "channel_name": "Tacticalpath", "handle": "@Tacticalpath", "channel_id": "UCF89JkC5qAzp8jI66J6G2yw",
+    "subscribers_approx": 55000,
+    "tabs": {"videos": "absent", "streams": "absent", "shorts": "present"},
+    "shorts_listed_first_page": 55,
+    "pagination": "continuation request returned HTTP 403 — total count unknown, >=55"
+  },
+  "views_first_55": {"median": 58000, "mean": 384418, "q1": 40000, "q3": 250000, "min": 12000, "max": 3200000, "sum": 21143000,
+                     "buckets": {">=1M": 6, "100k-1M": 16, "<100k": 33}},
+  "single_video_full_metadata": {
+    "video_id": "oB518y0L7fI", "title": "Why Never Cut Trees on a New Moon",
+    "duration_s": 43, "resolution": "480x854 (max offered to this client)", "fps": 30,
+    "upload_date": "2026-10-21", "views": 2734578, "likes": 50249, "comments": 214,
+    "audio_tracks": "en-US original + 13 auto-dubbed languages (YouTube auto-dubbing enabled)",
+    "description": "empty", "tags": "none"
+  },
+  "storyboard_oB518y0L7fI": {
+    "sampling": "44 frames at 1.023 fps (YouTube storyboard L2, 50x90 px)",
+    "visual_segments_detected": 36,
+    "visual_changes": 35,
+    "changes_per_minute_lower_bound": 48.8,
+    "mean_segment_s_upper_bound": 1.19,
+    "frames_podcast": 10, "frames_broll": 34, "broll_share": 0.77,
+    "first_frame": "podcast talking head with caption already on screen (cold open, no title card)",
+    "last_frame": "podcast talking head (no end card / CTA)",
+    "method": "HSV 2D-histogram Bhattacharyya distance between consecutive samples, threshold 0.25, verified by eye; sub-second shots are invisible at this sampling so all pace values are LOWER bounds"
+  },
+  "midpoint_frames_54_videos": {
+    "sampling": "YouTube auto-frames hq1/hq2/hq3 (~25/50/75 % of runtime), 162 frames",
+    "podcast_talking_head": 53, "broll": 104, "split_stack": 2, "blur_fill_letterbox": 3,
+    "broll_share": 0.642,
+    "caption_present": "162/162",
+    "caption_words": {"1": 60, "2": 78, "3": 22, "4": 2, "mean": 1.79},
+    "caption_chars": {"median": 9, "max": 15}
+  },
+  "caption_system_44_cover_frames_1080x1920": {
+    "vertical_centre_px_median": 961, "vertical_centre_ratio": 0.501,
+    "cap_height_px_median": 41, "cap_height_range": [33, 68],
+    "block_width_px_median": 338, "block_width_range": [142, 557],
+    "fill_hex_median": "#19F464", "fill_hex_mean": "#1DE762", "fill_hex_p90": "#30FF7D",
+    "fill_dominant_bins": ["#10F868", "#10F860", "#18F870"],
+    "shadow_hex_sampled_mean": "#04651C", "shadow_offset": "downward ~6 px, slight +x; hard edge",
+    "watermark": {"text_layout": "BRAND split in two tones, wide tracking", "light_part_hex": "#C6C2BE (over footage, semi-opaque)",
+                  "accent_part_hex": "#54BB6F (semi-transparent)", "centre_offset_below_caption_px": 55, "cap_height_px": 17,
+                  "width_px_approx": 424},
+    "case": "ALL CAPS", "punctuation_kept": "? and apostrophes", "censoring": "F*** style", "non_speech_tags": "*SOUNDS*, *IN SHOCK*"
+  },
+  "image_stats_44_cover_frames": {"mean_saturation_0_255": 101, "mean_value_0_255": 118, "luma_std": 60, "laplacian_var_median": 164,
+     "observed": "visible over-sharpening halos / 'crunchy' micro-contrast on many frames, consistent with upscaling + sharpen of low-res sources"},
+  "template_calibration": {"make_captions.py --size 82": {"cap_height_px": 42, "width_RESPONSIBLE_px": 431, "centre_ratio": 0.502},
+                           "reference_RESPONSIBLE_width_px": 442}
+}

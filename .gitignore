@@ -1,0 +1,7 @@
+analysis_input/
+*.mp4
+!demo/*.mp4
+*.webm
+*.mkv
+__pycache__/
+.DS_Store

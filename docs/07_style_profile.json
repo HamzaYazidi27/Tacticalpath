@@ -1,0 +1,173 @@
+{
+  "schema": "center-punch-style-profile/1.0",
+  "generated": "2026-11-12",
+  "status_legend": {
+    "measured": "computed from pixels or metadata (see evidence/measurements.json)",
+    "observed": "seen by eye on real frames",
+    "inferred": "deduced from measured/observed evidence",
+    "recommended": "production choice consistent with evidence; NOT verifiable with the access available",
+    "unverified": "explicitly unknown — replace with tools/forensics output"
+  },
+  "channel": {
+    "name": {"value": "Tacticalpath", "status": "measured"},
+    "handle": {"value": "@Tacticalpath", "status": "measured"},
+    "channel_id": {"value": "UCF89JkC5qAzp8jI66J6G2yw", "status": "measured"},
+    "subscribers_approx": {"value": 55000, "status": "measured"},
+    "niche": {"value": "wildlife / animal stories told through podcast-guest clips (despite the 'tactical' name)", "status": "observed"},
+    "language": {"value": "en-US original + 13 YouTube auto-dubbed tracks", "status": "measured"},
+    "self_description": {"value": "disclaimer: reposts content it does not own; claims fair use", "status": "measured"},
+    "shorts_listed": {"value": 55, "note": "first page only; pagination blocked (403)", "status": "measured"},
+    "views_first_55": {"median": 58000, "mean": 384418, "q1": 40000, "q3": 250000, "max": 3200000, "status": "measured"},
+    "publishing_frequency": {"value": ">= 9 uploads in <= 22 days (≈3/week) recently", "status": "inferred"}
+  },
+  "content_formats": {
+    "shorts_9x16": {"share": 1.0, "status": "measured"},
+    "long_form_16x9": {"share": 0.0, "status": "measured"},
+    "live": {"share": 0.0, "status": "measured"},
+    "duration_s": {"value": 43, "n": 1, "typical_range_recommended": [35, 60], "status": "measured (n=1) / recommended"},
+    "fps": {"value": 30, "n": 1, "status": "measured"}
+  },
+  "editing_rhythm": {
+    "cuts_per_minute": {"value_lower_bound": 48.8, "target": [50, 60], "status": "measured (lower bound, 1 fps storyboard, n=1)"},
+    "mean_shot_s": {"value_upper_bound": 1.19, "status": "measured"},
+    "median_shot_s": {"value": 1.0, "note": "sampling floor", "status": "inferred"},
+    "visual_changes_first_window": {"3s": 3, "5s": 5, "10s": 10, "30s": 27, "status": "measured (1 fps)"},
+    "broll_share": {"value_range": [0.642, 0.77], "status": "measured (162 mid-frames / 44-frame storyboard)"},
+    "aroll_share": {"value_range": [0.23, 0.36], "status": "measured"},
+    "max_continuous_broll_s": {"value": 13, "status": "measured (n=1)"},
+    "return_to_speaker_every_s": {"value": [3, 6], "status": "inferred"},
+    "intensity_profile": {"value": "flat-high from frame 1 to last frame; ends on speaker", "status": "measured (n=1)"},
+    "word_to_picture_sync": {"value": ">= 27 of 104 B-roll frames show the exact caption noun", "status": "measured"},
+    "cut_offset_before_noun_frames": {"value": [0, 2], "status": "recommended"}
+  },
+  "transitions": {
+    "hard_cut": {"share": 1.0, "status": "observed (0 blended/whip frames in 206)"},
+    "cross_dissolve": {"share": 0.0, "status": "observed"},
+    "fade_black_white": {"share": 0.0, "status": "observed"},
+    "whip_zoom_speed": {"share": 0.0, "status": "observed"},
+    "black_frames_gag": {"frames": [2, 4], "usage": "optional", "status": "recommended"}
+  },
+  "camera_motion": {
+    "speaker_jump_framing": {"scales_pct": [100, 112, 120], "rule": "alternate on consecutive speaker shots", "status": "observed (pattern) / recommended (values)"},
+    "native_broll_motion": {"value": "kept (drone, tracking, handheld)", "status": "observed"},
+    "still_push_in": {"from_pct": 100, "to_pct": 106, "easing": "linear", "status": "recommended"},
+    "speed_ramps": {"value": false, "status": "observed"},
+    "camera_shake": {"value": false, "status": "observed"},
+    "motion_blur": {"value": false, "status": "observed"},
+    "freeze_frames": {"value": false, "status": "observed"}
+  },
+  "composition": {
+    "full_bleed_9x16": {"share": 0.969, "status": "measured"},
+    "blur_fill_letterbox": {"share": 0.019, "status": "measured"},
+    "split_stack": {"share": 0.012, "status": "measured"},
+    "pip": {"share": 0.0, "status": "observed"},
+    "eyes_height_ratio": {"value": [0.30, 0.38], "status": "observed"},
+    "safe_zones": {"avoid_bottom_pct": 20, "avoid_right_pct": 15, "status": "recommended"}
+  },
+  "typography": {
+    "caption": {
+      "font_family": {"value": "Montserrat", "alternatives": ["Gilroy Heavy", "Poppins Black"], "status": "measured (closest calibrated match, not an identification)"},
+      "font_weight": {"value": 900, "status": "measured"},
+      "size_px_on_1080x1920": {"value": 82, "status": "measured (calibration)"},
+      "cap_height_px": {"median": 41, "range": [33, 68], "status": "measured"},
+      "case": {"value": "upper", "status": "measured"},
+      "tracking": {"value": 0, "status": "observed"},
+      "max_chars": {"value": 16, "observed_max": 15, "median": 9, "status": "measured"},
+      "words_per_chunk": {"distribution": {"1": 60, "2": 78, "3": 22, "4": 2}, "mean": 1.79, "status": "measured"},
+      "position": {"x_px": 540, "y_center_px": 960, "y_ratio": 0.501, "status": "measured"},
+      "fill_hex": {"value": "#19F464", "hi": "#30FF7D", "top_quarter": "#18C34A", "bottom_quarter": "#24F577", "status": "measured"},
+      "outline": {"hex": "#06260D", "px": 2, "status": "inferred"},
+      "shadow": {"hex_core": "#0A3D16", "hex_sampled_mean": "#04651C", "dx_px": 1.5, "dy_px": 6, "blur_px": 0, "status": "measured/inferred"},
+      "glow": {"hex": "#19F464", "opacity": 0.4, "spread_px": 10, "blur": 12, "status": "observed (presence) / recommended (values)"},
+      "coverage": {"value": 1.0, "status": "measured (206/206 frames)"},
+      "profanity_mask": {"example": "F***", "status": "observed"},
+      "non_speech_tags": {"examples": ["*SOUNDS*", "*IN SHOCK*"], "status": "observed"},
+      "punctuation": {"keep": ["?", "!", "'"], "drop": [",", ".", ";", ":"], "status": "observed"},
+      "in_animation": {"value": "pop 85→106→100 % in 130 ms", "status": "unverified"},
+      "out_animation": {"value": "hard cut", "status": "unverified"}
+    },
+    "watermark": {
+      "layout": {"value": "brand split in two tones, wide tracking, locked under caption for full duration", "status": "measured"},
+      "font": {"value": "Montserrat ExtraBold", "status": "inferred"},
+      "size_px": {"value": 33, "cap_height_px": 17, "status": "measured"},
+      "tracking_px": {"value": 11, "status": "measured"},
+      "colour_light": {"hex": "#E6E2DE", "opacity": 0.8, "rendered_sample": "#C6C2BE", "status": "measured/inferred"},
+      "colour_accent": {"hex": "#54BB6F", "opacity": 0.75, "status": "measured"},
+      "offset_below_caption_center_px": {"value": 56, "measured": 55, "status": "measured"}
+    }
+  },
+  "motion_graphics": {
+    "lower_thirds": {"value": false, "status": "observed"},
+    "title_cards": {"value": false, "status": "observed"},
+    "maps_arrows_labels": {"value": false, "status": "observed"},
+    "end_screen_cta": {"value": false, "status": "observed"},
+    "callout_ring_optional": {"stroke_px": 8, "hex": "#19F464", "draw_on_frames": 8, "max_on_screen_s": 1.5, "status": "recommended"}
+  },
+  "color_grading": {
+    "approach": {"value": "mixed per source, unified by crisp/sharpen finish", "status": "observed"},
+    "mean_saturation_0_255": {"value": 101, "status": "measured"},
+    "mean_value_0_255": {"value": 118, "status": "measured"},
+    "luma_std_0_255": {"value": 60, "status": "measured"},
+    "oversharpening": {"value": true, "status": "observed"},
+    "grain": {"value": false, "status": "observed"},
+    "vignette": {"value": false, "status": "observed"},
+    "lut": {"file": "templates/luts/crisp_pop_709.cube", "mix": 0.8, "status": "recommended"},
+    "sharpen": {"ffmpeg": "unsharp=5:5:0.9", "resolve": 0.40, "status": "recommended"},
+    "upscale_before_sharpen": {"value": true, "status": "inferred"}
+  },
+  "sound_design": {
+    "_note": "No audio was accessible (bot wall). Every value below is a recommendation until measured.",
+    "narration": {"value": "source podcast speaker (no separate VO)", "status": "inferred from captions"},
+    "music": {"value": "one mood-matched instrumental bed, hard start at 0 s, ducked under voice", "status": "unverified"},
+    "music_duck_db": {"value": [-22, -18], "status": "unverified"},
+    "bpm": {"value": null, "status": "unverified"},
+    "sfx_whoosh_share_of_cuts": {"value": [0.1, 0.2], "status": "unverified"},
+    "sfx_categories": {"value": ["whoosh", "low impact", "literal nature foley"], "status": "unverified"},
+    "dialogue_chain": {"value": "HPF80 > de-ess 6k -4dB > comp 3:1 4-6dB GR > +2dB@3.5k > limiter -1dBTP", "status": "recommended"},
+    "loudness_target": {"integrated_lufs": -14, "true_peak_dbtp": -1, "lra_lu_max": 7, "status": "recommended"}
+  },
+  "storytelling": {
+    "hook": {"value": "title = concrete oddity + credible voice; frame 1 = speaker mid-claim with caption", "status": "measured (frame 1) / inferred (formula)"},
+    "title_patterns": {"ft_or_at_credit": 46, "superlative_or_danger": 16, "number": 11, "question": 5, "of": 55, "status": "measured"},
+    "structure": {"value": ["claim 0-6s", "context", "escalation", "verdict on speaker", "hard end / loop"], "status": "inferred"},
+    "ending": {"value": "speaker's last word, no CTA, no end card", "status": "measured (n=1)"},
+    "covers": {"value": "auto/selected video frame with caption visible; no designed thumbnail", "status": "measured (44/44)"},
+    "emotional_beats": {"value": "speaker reactions + non-speech tags every 3-6 s", "status": "observed"}
+  },
+  "timeline_rules": {
+    "canvas": {"w": 1080, "h": 1920, "fps": 30},
+    "video_tracks": ["V1 A-ROLL", "V2 B-ROLL", "V3 B-ROLL_ALT", "V4 ADJ_FINISH", "V5 CAPTIONS", "V6 BRAND_WM"],
+    "audio_tracks": ["A1 DIALOGUE", "A2 DIALOGUE_ALT", "A3 SFX_HITS", "A4 SFX_FOLEY", "A5 MUSIC", "A6 ROOM"],
+    "broll_shot_s": [0.7, 2.0],
+    "split_broll_longer_than_s": 2.0,
+    "first_broll_by_s": 1.2,
+    "first_and_last_shot": "A-roll"
+  },
+  "export_settings": {
+    "shorts": {"codec": "H.264 High 4.2", "res": "1080x1920", "fps": 30, "bitrate_mbps": {"target": 16, "max": 20}, "gop": 15, "audio": "AAC-LC 320k 48kHz", "loudness": "-14 LUFS / -1 dBTP", "status": "recommended"},
+    "standard_youtube": {"codec": "H.264 High", "res": "1920x1080 or 3840x2160", "bitrate_mbps": {"1080p": [12, 16], "2160p": 45}, "status": "recommended"},
+    "archival_master": {"codec": "ProRes 422 HQ", "audio": "PCM 24-bit 48kHz", "captions": "separate .ass/.srt", "status": "recommended"},
+    "reference_upload_resolution": {"value": "undetermined (client offered max 480x854 with failed JS challenge)", "status": "unverified"}
+  },
+  "confidence_scores": {
+    "caption_system": 0.95,
+    "colour_of_captions": 0.95,
+    "watermark": 0.9,
+    "composition_shot_mix": 0.9,
+    "transitions_hard_cut_only": 0.85,
+    "storytelling_structure": 0.7,
+    "pacing_exact_values": 0.55,
+    "camera_motion_inside_shots": 0.4,
+    "caption_animation": 0.2,
+    "audio": 0.05
+  },
+  "evidence": [
+    {"id": "E1", "what": "Channel listing (55 Shorts, views, titles)", "file": "evidence/channel_inventory.csv"},
+    {"id": "E2", "what": "1 fps storyboard of oB518y0L7fI, 44 frames, per-frame classification and histogram distance", "file": "evidence/storyboard_oB518y0L7fI.csv", "url": "https://www.youtube.com/shorts/oB518y0L7fI"},
+    {"id": "E3", "what": "162 auto mid-frames (25/50/75 %) of 54 Shorts: shot class + caption text", "file": "evidence/channel_inventory.csv"},
+    {"id": "E4", "what": "Caption geometry and colour measured on 44 cover frames (1080x1920)", "file": "evidence/measurements.json#caption_system_44_cover_frames_1080x1920"},
+    {"id": "E5", "what": "Template calibration render vs reference", "file": "evidence/measurements.json#template_calibration"},
+    {"id": "E6", "what": "Access limitations", "file": "evidence/ACCESS_LOG.md"},
+    {"id": "E7", "what": "Validation of templates on the 60 s animatic (50.1 cuts/min, caption centre 0.502, cap 41 px)", "file": "docs/06_DEMO_STORYBOARD_60S.md#11-validation-performed-in-this-repo"}
+  ]
+}
