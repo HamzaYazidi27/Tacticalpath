@@ -74,7 +74,11 @@ def _crop_for(sw, sh, zoom, fx, fy, fw):
 def render_a(aroll: Path, s: dict, out: Path, size, track):
     sw, sh = size
     fx, fy, fw = face_at(track, s["t0"], s["t1"])
-    cw, ch, x, y = _crop_for(sw, sh, s.get("zoom", 1.0), fx, fy, fw)
+    zoom = s.get("zoom", 1.0)
+    if sh > sw:                      # source already vertical (already framed by its creator):
+        zoom = 1 + (zoom - 1) * 0.6  # gentler punch-ins, and stay close to the original centre
+        fx, fy = 0.5 + (fx - 0.5) * 0.3, 0.42 + (fy - 0.42) * 0.3
+    cw, ch, x, y = _crop_for(sw, sh, zoom, fx, fy, fw)
     n = frames(s["t1"]) - frames(s["t0"])
     ffmpeg("-ss", f"{s['t0']:.4f}", "-i", str(aroll), "-frames:v", str(n),
            "-vf", f"crop={cw}:{ch}:{x}:{y},scale={W}:{H}:flags=lanczos,setsar=1,format=yuv420p", *ENC, str(out))

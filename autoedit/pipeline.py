@@ -42,6 +42,11 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
     else:
         log(f"speech density {wpm:.0f} words/min → PODCAST-CLIP mode")
         env = analyze.rms_envelope(extract_wav(src, work / "audio16k.wav"))
+        total = selector.est_out(words, 0, len(words) - 1, cfg.gap_trim)
+        if total < cfg.min_dur:              # short input: keep the whole talk, adapt the targets
+            cfg = dataclasses.replace(cfg, min_dur=max(3.0, total * 0.85), target_dur=total,
+                                      max_dur=max(cfg.max_dur, total + 1), count=1)
+            log(f"input speech is only {total:.1f}s (shorter than the minimum): using all of it")
         clips, _ = selector.select(words, cfg, env)
         plans = []
         for n, clip in enumerate(clips, 1):
