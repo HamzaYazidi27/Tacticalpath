@@ -4,6 +4,9 @@ A forensic reverse-engineering of the editing style of [youtube.com/@Tacticalpat
 
 ![Center-Punch caption, rendered by templates/captions/make_captions.py](demo/caption_style_preview.png)
 
+> **Nouveau : [`autoedit`](AUTOEDIT.md), monteur 100 % automatique.** Donnez une vidéo brute, recevez le Short monté dans ce style (sélection de l'histoire, coupes, B-roll, sous-titres, étalonnage, mixage, contrôle qualité) :
+> `python -m autoedit ma_video.mp4` ou `python -m autoedit --watch inbox --out outbox`. Guide en français : [AUTOEDIT.md](AUTOEDIT.md).
+
 ## What the channel actually is
 
 `@Tacticalpath` is **not** a tactical or military channel. It is a **Shorts-only wildlife-podcast clip channel** (~55 K subscribers, ≥ 55 Shorts, 21 M views across the first 55). Its grammar, measured on 206 real frames:

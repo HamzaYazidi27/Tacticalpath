@@ -189,7 +189,7 @@ def pop(anim: str) -> str:
 
 
 def build(words, brand, accent_split, anim, censor, font, size, y_ratio,
-          shadow_dy, shadow_dx, glow, wm, max_words):
+          shadow_dy, shadow_dx, glow, wm, max_words, duration=None):
     words = [dict(w, word=w["word"]) for w in words if w["word"].strip()]
     y = int(PLAY_H * y_ratio)
     x = PLAY_W // 2
@@ -211,12 +211,12 @@ def build(words, brand, accent_split, anim, censor, font, size, y_ratio,
             ev.append(f"Dialogue: 0,{ts(st)},{ts(en)},CapGlow,,0,0,0,,{{{pos}{pop(anim)}\\blur12}}{txt}")
         # extruded drop shadow (mostly downward) — \xshad/\yshad give independent offsets
         ev.append(f"Dialogue: 1,{ts(st)},{ts(en)},Cap,,0,0,0,,{{{pos}{pop(anim)}\\xshad{shadow_dx}\\yshad{shadow_dy}}}{txt}")
-    if wm and brand:
-        end = max((e for _, e, _ in chunks), default=1.0)
+    if wm and brand and (chunks or duration):
+        end = max([e for _, e, _ in chunks] + [duration or 0.0]) or 1.0
         a, b = brand[:accent_split].upper(), brand[accent_split:].upper()
         wy = y + round(size * 0.68)   # measured: watermark centre sits 55–56 px below caption centre
         accent = ass_color(WM_ACCENT, 0x40)
-        ev.append(f"Dialogue: 2,{ts(0)},{ts(end + 0.5)},Brand,,0,0,0,,{{\\an5\\pos({x},{wy})}}{a}{{\\1c{accent}}}{b}")
+        ev.append(f"Dialogue: 2,{ts(0)},{ts(end + (0 if duration else 0.5))},Brand,,0,0,0,,{{\\an5\\pos({x},{wy})}}{a}{{\\1c{accent}}}{b}")
     return hdr + "\n".join(ev) + "\n"
 
 

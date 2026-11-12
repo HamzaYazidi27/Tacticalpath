@@ -5,3 +5,10 @@ analysis_input/
 *.mkv
 __pycache__/
 .DS_Store
+tests/fixtures/
+autoedit_out/
+inbox/
+outbox/
+.venv/
+autoedit.config.json
+reports/

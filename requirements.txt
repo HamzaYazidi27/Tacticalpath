@@ -1,0 +1,6 @@
+# autoedit — raw video in, finished Short out
+faster-whisper>=1.0          # speech-to-text with word timestamps (downloads the model on first run)
+opencv-python-headless>=4.8,<5   # face tracking + scene analysis (OpenCV 5 dropped the Haar face detector)
+numpy>=1.24
+pillow>=9
+anthropic>=0.70              # optional: Claude picks the best story + writes B-roll queries (needs ANTHROPIC_API_KEY)

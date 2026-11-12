@@ -1,0 +1,18 @@
+{
+  "brand": "YOUR|BRAND",
+  "count": 1,
+  "min_dur": 30,
+  "max_dur": 60,
+  "target_dur": 45,
+  "whisper_model": "small",
+  "language": null,
+  "llm": "auto",
+  "broll_dirs": ["broll"],
+  "music_dirs": ["music"],
+  "online_broll": true,
+  "lut_mix": 0.8,
+  "sharpen": 0.9,
+  "music_db_under_voice": -19,
+  "loudness_lufs": -14,
+  "montage_dur": 35
+}
