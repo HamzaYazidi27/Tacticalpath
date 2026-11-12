@@ -20,6 +20,8 @@ Audio could not be inspected: YouTube's bot wall blocked streams from the analys
 
 ## Deliverables
 
+**Interactive version:** [`docs/center_punch_style_bible.html`](docs/center_punch_style_bible.html). Open it in a browser for a live 9:16 monitor that plays the 60-s demo edit with the calibrated captions, plus the measured profile, caption anatomy and rules on one page.
+
 | # | Document | What's inside |
 |---|---|---|
 | 1 | [Channel Analysis Report](docs/01_CHANNEL_ANALYSIS_REPORT.md) | Inventory, sample selection, phases 2–7 with evidence, 44-frame breakdown |

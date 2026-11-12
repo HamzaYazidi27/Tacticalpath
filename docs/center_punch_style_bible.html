@@ -1,0 +1,527 @@
+<title>Center-Punch Style Bible</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Montserrat:wght@800;900&display=swap">
+<style>
+/* Layout concept: an edit bay. Story and spec on the left, a 9:16 program monitor on the right playing the
+   60-second demo, a timeline under it. The live caption is the subject's own colour; the page chrome uses
+   cool graded neutrals and a timecode-amber accent. */
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --surface-2:#E3E8ED; --ink:#11161B; --muted:#56616D; --line:#CDD5DD;
+  --accent:#9A5600; --accent-soft:#F4E2C6; --aroll:#C9861E; --broll:#3E5566;
+  --m:#16714A; --m-bg:#DDF1E6; --o:#2552A0; --o-bg:#DFE8F7; --i:#6E44A8; --i-bg:#ECE3F7; --r:#9A5600; --r-bg:#F4E2C6;
+  --bay:#0A0D10; --bay-line:#222A31; --bay-ink:#DCE3EA; --bay-muted:#7F8B97;
+  --cap:#19F464; --cap-hi:#30FF7D; --cap-shadow:#0A3D16; --cap-rim:#06260D; --wm-light:#E6E2DE; --wm-accent:#54BB6F;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --caption:"Montserrat","Arial Black",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1115; --surface:#141A20; --surface-2:#1B232B; --ink:#E6EBF0; --muted:#94A1AE; --line:#26303A;
+  --accent:#F0B24A; --accent-soft:#3A2B12; --aroll:#E3A23A; --broll:#6F8DA3;
+  --m:#5FD39A; --m-bg:#123325; --o:#8DB2F2; --o-bg:#16243D; --i:#C3A3F2; --i-bg:#2A1E3D; --r:#F0B24A; --r-bg:#3A2B12;
+  --bay:#06080A; --bay-line:#1D252C; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1115; --surface:#141A20; --surface-2:#1B232B; --ink:#E6EBF0; --muted:#94A1AE; --line:#26303A;
+  --accent:#F0B24A; --accent-soft:#3A2B12; --aroll:#E3A23A; --broll:#6F8DA3;
+  --m:#5FD39A; --m-bg:#123325; --o:#8DB2F2; --o-bg:#16243D; --i:#C3A3F2; --i-bg:#2A1E3D; --r:#F0B24A; --r-bg:#3A2B12;
+  --bay:#06080A; --bay-line:#1D252C; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:1180px;margin:0 auto}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,.tl:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.05}
+h2{font-size:clamp(28px,3.4vw,40px);font-weight:800;font-stretch:112%;letter-spacing:-.01em}
+h3{font-size:18px;font-weight:700;font-stretch:100%;letter-spacing:.01em}
+p{margin:0;max-width:66ch}
+.eyebrow{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+section{display:grid;gap:22px;padding-block:56px 8px;border-top:1px solid var(--line);margin-top:48px}
+.lede{color:var(--muted);font-size:17px}
+
+/* ---------- header / hero ---------- */
+header.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding-block:20px;flex-wrap:wrap}
+.brandmark{font:800 14px/1 var(--display);font-stretch:125%;letter-spacing:.08em;text-transform:uppercase}
+.brandmark b{color:var(--accent)}
+.hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:48px;align-items:start;padding-top:28px}
+.hero h1{font-size:clamp(52px,8.4vw,112px);font-weight:900;font-stretch:125%;letter-spacing:-.02em;line-height:.9}
+.hero h1 span{display:block;font-stretch:62%;font-weight:800;font-size:.42em;letter-spacing:.02em;color:var(--muted);margin-top:14px;line-height:1.05}
+.hero .copy{display:grid;gap:24px;min-width:0}
+.thesis{font-size:19px;line-height:1.55}
+.thesis em{font-style:normal;background:linear-gradient(transparent 62%,var(--accent-soft) 62%)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{padding:16px 14px 14px 0;display:grid;gap:6px;align-content:start}
+.stat + .stat{padding-left:14px;border-left:1px solid var(--line)}
+.stat .n{font:800 clamp(24px,2.5vw,32px)/1 var(--display);white-space:nowrap;font-stretch:110%;font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted);line-height:1.35}
+.twist{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.twist .tag{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:6px 7px}
+.twist p{font-size:15px}
+
+/* ---------- edit bay ---------- */
+.bay{background:var(--bay);color:var(--bay-ink);border-radius:14px;padding:18px;display:grid;gap:14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px)}
+.bay-head{display:flex;justify-content:space-between;align-items:center;gap:10px;font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--bay-muted)}
+.rec{display:inline-flex;align-items:center;gap:7px}
+.rec i{width:7px;height:7px;border-radius:50%;background:#E5484D;display:inline-block}
+.paused .rec i{background:var(--bay-muted)}
+.monitor-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:stretch}
+.phone{width:min(300px,62vw);aspect-ratio:9/16;max-width:100%;border-radius:22px;padding:7px;background:#000;box-shadow:0 0 0 1px var(--bay-line),0 24px 60px -24px rgba(0,0,0,.6)}
+.screen{position:relative;width:100%;height:100%;border-radius:16px;overflow:hidden;container-type:inline-size;background:#111}
+.shot{position:absolute;inset:0;will-change:transform}
+.shot .sil{position:absolute;inset:0;transform-origin:50% 34%}
+.sil .head{position:absolute;left:50%;top:22%;width:30%;aspect-ratio:1/1.25;transform:translateX(-50%);border-radius:50%;background:var(--skin,#7b5f50)}
+.sil .body{position:absolute;left:50%;top:45%;width:72%;height:70%;transform:translateX(-50%);border-radius:40% 40% 0 0/22% 22% 0 0;background:var(--shirt,#24262b)}
+.sil .mic{position:absolute;left:66%;top:44%;width:7%;height:26%;background:#090a0c;border-radius:4cqw 4cqw 1cqw 1cqw}
+.shot .blob{position:absolute;left:50%;top:40%;width:70%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;filter:blur(8cqw);opacity:.45}
+.shot .desc{position:absolute;left:8%;right:8%;top:66%;font:500 4.1cqw/1.3 var(--body);color:rgba(255,255,255,.78);text-align:center;text-wrap:balance}
+.slate{position:absolute;left:5%;top:4.5%;font:600 3.4cqw/1 var(--mono);letter-spacing:.08em;color:#fff;background:rgba(0,0,0,.55);padding:1.6cqw 2.2cqw;border-radius:1.4cqw;z-index:3}
+.black{position:absolute;inset:0;background:#000;z-index:2;display:none}
+.cap-wrap{position:absolute;left:0;right:0;top:50%;z-index:4;text-align:center;pointer-events:none}
+.cap{display:inline-block;transform:translateY(-50%);font:900 7.59cqw/1 var(--caption);text-transform:uppercase;color:var(--cap);
+  -webkit-text-stroke:.2cqw var(--cap-rim);paint-order:stroke fill;
+  text-shadow:.14cqw .56cqw 0 var(--cap-shadow),0 0 1.1cqw rgba(25,244,100,.45);white-space:nowrap}
+.cap.pop{animation:pop .13s linear}
+@keyframes pop{0%{transform:translateY(-50%) scale(.85)}54%{transform:translateY(-50%) scale(1.06)}100%{transform:translateY(-50%) scale(1)}}
+.wm{position:absolute;left:0;right:0;top:calc(50% + 5.19cqw);transform:translateY(-50%);text-align:center;z-index:4;
+  font:800 3.06cqw/1 var(--caption);letter-spacing:1.02cqw;padding-left:1.02cqw;color:var(--wm-light);opacity:.85}
+.wm b{color:var(--wm-accent);font-weight:800}
+.guide{position:absolute;z-index:5;pointer-events:none;display:none}
+.show-safe .guide.safe{display:block}
+.show-center .guide.center{display:block}
+.guide.safe.b{left:0;right:0;bottom:0;height:20%;background:repeating-linear-gradient(135deg,rgba(229,72,77,.32) 0 6px,transparent 6px 12px);border-top:1px dashed #E5484D}
+.guide.safe.r{top:0;bottom:20%;right:0;width:15%;background:repeating-linear-gradient(135deg,rgba(229,72,77,.32) 0 6px,transparent 6px 12px);border-left:1px dashed #E5484D}
+.guide.center{left:0;right:0;top:50%;border-top:1px dashed var(--accent)}
+.guide.center::after{content:"y 960 / 1920";position:absolute;right:3%;top:2px;font:600 2.8cqw/1 var(--mono);color:var(--accent)}
+.meters{display:grid;gap:10px;align-content:start;min-width:0}
+.meter{border:1px solid var(--bay-line);border-radius:8px;padding:10px 12px;display:grid;gap:4px}
+.meter .k{font:600 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--bay-muted)}
+.meter .v{font:700 22px/1.1 var(--mono);font-variant-numeric:tabular-nums;color:var(--bay-ink)}
+.meter .v small{font-size:12px;color:var(--bay-muted);font-weight:400}
+.meter .now{font:500 13px/1.35 var(--body);color:var(--bay-ink);min-height:2.7em}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 12px/1 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--bay-ink);background:transparent;border:1px solid var(--bay-line);border-radius:6px;padding:9px 11px;cursor:pointer}
+.btn:hover{border-color:var(--bay-muted)}
+.btn[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.btn.play{background:var(--bay-ink);color:var(--bay);border-color:var(--bay-ink);min-width:84px}
+.tlbox{display:grid;gap:6px}
+.tl{position:relative;height:34px;border-radius:5px;overflow:hidden;display:flex;cursor:pointer;background:var(--bay-line)}
+.tl .seg{height:100%;border-right:1px solid var(--bay)}
+.tl .seg.P{background:var(--aroll)}
+.tl .seg.B{background:#33495a}
+.tl .head{position:absolute;top:0;bottom:0;width:2px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.5);left:0}
+.tl-legend{display:flex;justify-content:space-between;gap:10px;font:500 11px/1.2 var(--mono);color:var(--bay-muted);flex-wrap:wrap}
+.tl-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* ---------- labels / tables ---------- */
+.pill{display:inline-block;font:600 11px/1 var(--mono);letter-spacing:.04em;padding:4px 6px;border-radius:4px;white-space:nowrap}
+.pill.M{color:var(--m);background:var(--m-bg)} .pill.O{color:var(--o);background:var(--o-bg)}
+.pill.I{color:var(--i);background:var(--i-bg)} .pill.R{color:var(--r);background:var(--r-bg)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;gap:7px;align-items:center}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 11px/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.conf{display:flex;align-items:center;gap:8px;min-width:120px}
+.conf .bar{flex:1;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.conf .bar i{display:block;height:100%;background:var(--ink)}
+.conf span{font:500 12px/1 var(--mono);color:var(--muted);width:30px;text-align:right}
+
+/* ---------- caption anatomy ---------- */
+.anatomy{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;align-items:start}
+.specimen{position:relative;aspect-ratio:2/1;border-radius:12px;overflow:hidden;container-type:inline-size;
+  background:radial-gradient(120% 90% at 30% 20%,#3d5a52 0,#1d2b2a 45%,#0c1213 100%)}
+.specimen .cap-wrap{top:50%}
+.specimen .cap{font-size:7.59cqw}
+.specimen .wm{top:calc(50% + 5.19cqw)}
+.dim{position:absolute;z-index:6;font:600 2cqw/1 var(--mono);color:#F0B24A;pointer-events:none}
+.dim.cl{left:0;right:0;top:50%;border-top:1px dashed rgba(240,178,74,.85)}
+.dim.cl span{position:absolute;left:2%;top:-2.6cqw}
+.dim.ch{left:22%;top:calc(50% - 1.95cqw);height:3.9cqw;border-left:1px solid #F0B24A;border-top:1px solid #F0B24A;border-bottom:1px solid #F0B24A;width:1.2cqw}
+.dim.ch span{position:absolute;right:2.2cqw;top:50%;transform:translateY(-50%);white-space:nowrap}
+.dim.wo{right:23%;top:50%;height:5.19cqw;border-right:1px solid #F0B24A;width:1.2cqw;border-top:1px solid #F0B24A;border-bottom:1px solid #F0B24A}
+.dim.wo span{position:absolute;left:2.2cqw;top:50%;transform:translateY(-50%);white-space:nowrap}
+.specs{display:grid;gap:0;border-top:1px solid var(--line)}
+.specs div{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:baseline}
+.specs dt,.specs .k{color:var(--muted);font-size:13px}
+.specs .v{font-family:var(--mono);font-size:13px;overflow-wrap:anywhere}
+.swatches{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sw{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;text-align:left;color:var(--ink);font:inherit}
+.sw .chip{aspect-ratio:4/3;border-radius:6px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.sw .h{font:600 13px/1 var(--mono)}
+.sw .r{font-size:12px;color:var(--muted);line-height:1.3}
+.sw .ok{font:600 11px/1 var(--mono);color:var(--m);min-height:11px}
+
+/* ---------- shot mix ---------- */
+.mix{display:grid;gap:10px}
+.stack{display:flex;height:44px;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.stack div{display:flex;align-items:center;padding-left:10px;font:600 12px/1 var(--mono);white-space:nowrap;overflow:hidden;color:#fff}
+.mixlegend{display:flex;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--muted)}
+.mixlegend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.strip{display:grid;grid-template-columns:repeat(44,minmax(0,1fr));gap:2px}
+.strip div{aspect-ratio:9/16;border-radius:2px;position:relative}
+.strip .P{background:var(--aroll)} .strip .B{background:var(--broll)}
+.strip .cut::before{content:"";position:absolute;left:-2px;top:-6px;bottom:-6px;width:2px;background:var(--ink);opacity:.55}
+.strip-axis{display:flex;justify-content:space-between;font:500 11px/1 var(--mono);color:var(--muted)}
+.twocol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.note{font-size:14px;color:var(--muted)}
+
+/* ---------- rules ---------- */
+.rules{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px 18px 8px;display:grid;gap:10px;align-content:start}
+.rule h3{display:flex;align-items:center;gap:10px}
+.rule h3 i{font-style:normal;font:700 11px/1 var(--mono);padding:5px 7px;border-radius:4px;letter-spacing:.08em}
+.rule.do h3 i{background:var(--m-bg);color:var(--m)} .rule.dont h3 i{background:#F6DADB;color:#A1262B} .rule.opt h3 i{background:var(--o-bg);color:var(--o)}
+:root[data-theme="dark"] .rule.dont h3 i{background:#3A1718;color:#F1999C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .rule.dont h3 i{background:#3A1718;color:#F1999C}}
+.rule ul{margin:0;padding:0;list-style:none;display:grid}
+.rule li{padding:9px 0;border-top:1px solid var(--line);font-size:14px;line-height:1.45}
+
+/* ---------- workflow ---------- */
+.flow{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(210px,100%),1fr));gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.step{padding:14px 16px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;gap:4px;align-content:start}
+.step .no{font:600 11px/1 var(--mono);color:var(--accent);letter-spacing:.08em}
+.step b{font:700 15px/1.25 var(--display);font-stretch:100%}
+.step span{font-size:13px;color:var(--muted);line-height:1.4}
+
+/* ---------- limits / footer ---------- */
+.limits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.lim{border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:10px;background:var(--surface)}
+.lim ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+.files{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:10px}
+.files a{display:grid;gap:3px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);text-decoration:none;color:var(--ink)}
+.files a:hover{border-color:var(--accent)}
+.files a b{font:700 14px/1.3 var(--body)}
+.files a span{font:500 12px/1.3 var(--mono);color:var(--muted);overflow-wrap:anywhere}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:minmax(0,1fr)}
+  .bay{position:static}
+  .anatomy,.twocol,.limits{grid-template-columns:minmax(0,1fr)}
+  .rules{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat:nth-child(3){padding-left:0;border-left:0}
+  .stat:nth-child(n+3){border-top:1px solid var(--line)}
+  .monitor-row{grid-template-columns:minmax(0,1fr);justify-items:center}
+  .meters{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+  .meters .meter.wide{grid-column:1/-1}
+  .swatches{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .specs div{grid-template-columns:110px minmax(0,1fr)}
+  .specs div .pill{grid-column:2;justify-self:start}
+  .strip{gap:1px}
+}
+@media (prefers-reduced-motion: reduce){.cap.pop{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brandmark">Center<b>-</b>Punch <span class="eyebrow" style="margin-left:10px">editing system v1.0</span></div>
+    <div class="eyebrow">Reverse-engineered from youtube.com/@Tacticalpath · 2026-11-12</div>
+  </header>
+
+  <div class="hero">
+    <div class="copy">
+      <h1>Center-Punch<span>A style bible for podcast-clip wildlife Shorts</span></h1>
+      <p class="thesis">One voice tells the story. The picture changes <em>about once a second</em> to show exactly what is being said, and one neon caption sits at the <em>dead centre of the frame</em> holding the two together.</p>
+      <div class="stats" role="list">
+        <div class="stat" role="listitem"><span class="n">≥49</span><span class="l">cuts per minute (1 fps lower bound)</span></div>
+        <div class="stat" role="listitem"><span class="n">64–77%</span><span class="l">of runtime is B-roll</span></div>
+        <div class="stat" role="listitem"><span class="n">50.1%</span><span class="l">caption centre, as a share of frame height</span></div>
+        <div class="stat" role="listitem"><span class="n">206/206</span><span class="l">sampled frames carry a caption</span></div>
+      </div>
+      <div class="twist"><span class="tag">Finding</span><p>Despite the name, the channel isn't military or tactical. It is a Shorts-only wildlife channel built from podcast-guest clips: about 55 K subscribers and 21 M views across its first 55 Shorts. Every number on this page was measured on its real frames, or is labelled as a recommendation.</p></div>
+      <div class="legend" aria-label="Evidence labels">
+        <span><b class="pill M">M</b>measured from pixels / metadata</span>
+        <span><b class="pill O">O</b>observed on frames</span>
+        <span><b class="pill I">I</b>inferred</span>
+        <span><b class="pill R">R</b>recommendation, unverified</span>
+      </div>
+    </div>
+
+    <aside class="bay" id="bay" aria-label="Program monitor playing the 60-second demonstration edit">
+      <div class="bay-head"><span class="rec"><i></i><span id="state">Program · demo 60 s</span></span><span class="mono" id="tc">00:00.00 / 01:00.00</span></div>
+      <div class="monitor-row">
+        <div class="phone"><div class="screen" id="screen">
+          <div class="shot" id="shot"></div>
+          <div class="black" id="black"></div>
+          <div class="slate" id="slate">SHOT 01 · A-ROLL</div>
+          <div class="cap-wrap"><span class="cap" id="cap">AN OCTOPUS</span></div>
+          <div class="wm">WILD<b>FRAME</b></div>
+          <div class="guide safe b"></div><div class="guide safe r"></div><div class="guide center"></div>
+        </div></div>
+        <div class="meters">
+          <div class="meter"><span class="k">Shot</span><span class="v" id="mShot">01<small> / 52</small></span></div>
+          <div class="meter"><span class="k">Cuts / min so far</span><span class="v" id="mCpm">—</span></div>
+          <div class="meter"><span class="k">B-roll share</span><span class="v" id="mBroll">—</span></div>
+          <div class="meter wide"><span class="k">On screen</span><span class="now" id="mNow">A-cam guest, punch 115%</span></div>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="btn play" id="play" type="button">Play</button>
+        <button class="btn" id="tSafe" type="button" aria-pressed="false">Safe zones</button>
+        <button class="btn" id="tCenter" type="button" aria-pressed="false">Centre line</button>
+        <button class="btn" id="tSlate" type="button" aria-pressed="true">Slate</button>
+      </div>
+      <div class="tlbox">
+        <div class="tl" id="tl" tabindex="0" role="slider" aria-label="Timeline" aria-valuemin="0" aria-valuemax="60" aria-valuenow="0"></div>
+        <div class="tl-legend"><span><i style="background:var(--aroll)"></i>A-roll (speaker)</span><span><i style="background:#33495a"></i>B-roll</span><span>52 hard cuts · click to seek · space to play</span></div>
+      </div>
+    </aside>
+  </div>
+
+  <section id="profile">
+    <div class="eyebrow">Quantitative profile</div>
+    <h2>What was measured</h2>
+    <p class="lede">The evidence: 206 real frames (162 auto mid-frames across 54 Shorts, 44 full-resolution covers) plus a 1 fps storyboard of one 43-second Short. Bounds are marked as bounds.</p>
+    <div class="tablebox"><table>
+      <thead><tr><th>Parameter</th><th>Value</th><th>Evidence</th><th>Label</th><th>Confidence</th></tr></thead>
+      <tbody id="ptable"></tbody>
+    </table></div>
+  </section>
+
+  <section id="caption">
+    <div class="eyebrow">The one graphic system</div>
+    <h2>Caption anatomy</h2>
+    <p class="lede">Rendered live in the browser at the calibrated proportions: Montserrat Black at 82 px on a 1080-wide canvas. The repo's ASS generator reproduces it to within 3 % of the reference width.</p>
+    <div class="anatomy">
+      <div class="specimen" aria-label="Caption specimen with dimension marks">
+        <div class="cap-wrap"><span class="cap">ESCAPED</span></div>
+        <div class="wm">WILD<b>FRAME</b></div>
+        <div class="dim cl"><span>centre y 961 / 1920</span></div>
+        <div class="dim ch"><span>41 px cap</span></div>
+        <div class="dim wo"><span>+55 px</span></div>
+      </div>
+      <dl class="specs" style="margin:0">
+        <div><span class="k">Font</span><span class="v">Montserrat Black 900 · 82 px</span><b class="pill M">M</b></div>
+        <div><span class="k">Case / length</span><span class="v">UPPERCASE · 1–3 words · ≤16 chars</span><b class="pill M">M</b></div>
+        <div><span class="k">Words / chunk</span><span class="v">1 ×60 · 2 ×78 · 3 ×22 · mean 1.79</span><b class="pill M">M</b></div>
+        <div><span class="k">Shadow</span><span class="v">hard · dx +1.5 dy +6 px · blur 0</span><b class="pill I">I</b></div>
+        <div><span class="k">Rim / glow</span><span class="v">2 px #06260D · green glow 40 %</span><b class="pill O">O</b></div>
+        <div><span class="k">Watermark</span><span class="v">ExtraBold 33 px · tracking +11 · two-tone</span><b class="pill M">M</b></div>
+        <div><span class="k">Entry animation</span><span class="v">pop 85→106→100 % in 130 ms</span><b class="pill R">R</b></div>
+        <div><span class="k">Extras</span><span class="v">F*** masking · *SOUNDS* tags · keeps “?”</span><b class="pill O">O</b></div>
+      </dl>
+    </div>
+    <div class="swatches" id="swatches"></div>
+  </section>
+
+  <section id="mix">
+    <div class="eyebrow">Shot grammar</div>
+    <h2>Mostly pictures, punctuated by the speaker</h2>
+    <div class="twocol">
+      <div class="mix">
+        <h3>162 mid-video frames, 54 Shorts</h3>
+        <div class="stack" aria-label="Shot mix">
+          <div style="width:64.2%;background:var(--broll)">B-roll 64.2%</div>
+          <div style="width:32.7%;background:var(--aroll)">A-roll 32.7%</div>
+          <div style="width:1.9%;background:#7c6aa8" title="Blur-fill 1.9%"></div>
+          <div style="width:1.2%;background:#a8506a" title="Split-stack 1.2%"></div>
+        </div>
+        <div class="mixlegend"><span><i style="background:var(--broll)"></i>B-roll 104</span><span><i style="background:var(--aroll)"></i>Speaker crop 53</span><span><i style="background:#7c6aa8"></i>Blur-fill 3</span><span><i style="background:#a8506a"></i>Split-stack 2</span></div>
+        <p class="note">At least 27 of the 104 B-roll frames show the exact noun on screen in the caption at that instant: <code>BELUGA WHALES</code>, <code>BEAR SPRAY</code>, <code>A GORILLA</code>.</p>
+      </div>
+      <div class="mix">
+        <h3>One Short, second by second (43 s, 1 fps)</h3>
+        <div class="strip" id="strip" aria-label="Storyboard classes per second"></div>
+        <div class="strip-axis"><span>0 s</span><span>10</span><span>20</span><span>30</span><span>43 s</span></div>
+        <p class="note">Ticks mark a detected shot change: 35 changes in 43 s. Unbroken B-roll runs last 6, 6, 7 and 13 seconds. The Short opens and closes on the speaker, which lets it loop.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="rules">
+    <div class="eyebrow">Editing rules</div>
+    <h2>Do, don't, sometimes</h2>
+    <div class="rules">
+      <div class="rule do"><h3><i>DO</i>Every time</h3><ul>
+        <li>Cut on every new noun: shots near 1 s, at least 50 cuts per minute.</li>
+        <li>Show the literal thing being said whenever footage exists.</li>
+        <li>Keep a caption on screen 100 % of the time, centred at 50 % height.</li>
+        <li>Lock the two-tone watermark 56 px under the caption for the whole video.</li>
+        <li>Alternate the speaker's framing: 100 % → 112 % → 100 % → 120 %.</li>
+        <li>Open mid-claim with the caption already visible; end on the last word.</li>
+      </ul></div>
+      <div class="rule dont"><h3><i>DON'T</i>Breaks the look</h3><ul>
+        <li>Dissolves, whips, zoom transitions, glitches, light leaks.</li>
+        <li>Lower thirds, title cards, end screens, subscribe animations.</li>
+        <li>Moving the caption to the bottom third, or per shot.</li>
+        <li>Karaoke colour highlighting inside a chunk.</li>
+        <li>More than 2 s of B-roll unrelated to the spoken line.</li>
+        <li>Footage, music or podcast audio you have no rights to.</li>
+      </ul></div>
+      <div class="rule opt"><h3><i>OPTIONAL</i>When the footage asks</h3><ul>
+        <li>Blur-fill letterbox for a source that can't be cropped (≤ 2 %).</li>
+        <li>Top/bottom split-stack for a two-speaker exchange (≈ 1 %).</li>
+        <li>Generated stills for hypothetical or comic beats, labelled where required.</li>
+        <li>2–4 black frames as a gag accent.</li>
+        <li>Slow 100 → 106 % push-in on stills.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <section id="workflow">
+    <div class="eyebrow">Production SOP · about 2–3 hours per Short</div>
+    <h2>The pipeline, in order</h2>
+    <div class="flow" id="flow"></div>
+  </section>
+
+  <section id="limits">
+    <div class="eyebrow">Honesty section</div>
+    <h2>What couldn't be seen</h2>
+    <div class="limits">
+      <div class="lim"><h3>Blocked during analysis</h3><ul>
+        <li>Video and audio streams: YouTube's bot check from a cloud IP. Not circumvented.</li>
+        <li>Transcripts (rate-limited) and storyboards for all but one Short.</li>
+        <li>Upload dates and durations for all but one Short (43 s).</li>
+        <li>Caption entry animation and in-shot camera moves, which still frames can't show.</li>
+        <li>Everything about audio: voice, music, SFX and mix are recommendations only.</li>
+      </ul></div>
+      <div class="lim"><h3>Closing the gaps</h3>
+        <p style="font-size:14px">Download 6–10 Shorts on your own machine and run the repo's forensic tools. They fill every field marked <span class="pill R">R</span> or <code>"unverified"</code> in the JSON profile:</p>
+        <p><code>bash tools/forensics/run_all.sh analysis_input/</code></p>
+        <p class="note">Measures exact cuts per minute, shot lengths, opening density, LUFS, true peak, BPM and caption colours.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="files">
+    <div class="eyebrow">Repository · branch claude/focused-lamport-wdn13a</div>
+    <h2>Deliverables and templates</h2>
+    <div class="files" id="fileList"></div>
+  </section>
+</div>
+
+<script>
+const DATA = {"shots":[{"s":0.0,"e":1.1,"t":"P","z":1.15,"cam":"guest","v":"Guest mid-story, eyes to host","f":"A-cam guest MCU, punch 115%","push":false,"blk":false},{"s":1.1,"e":2.25,"t":"B","z":1.0,"cam":"guest","v":"Aquarium tank at night, octopus pressed against glass","f":"B-roll wide","push":true,"blk":false},{"s":2.25,"e":3.25,"t":"B","z":1.0,"cam":"guest","v":"Arm sliding over the tank rim","f":"B-roll macro","push":false,"blk":false},{"s":3.25,"e":4.2,"t":"B","z":1.0,"cam":"guest","v":"Wet trail across a concrete floor","f":"B-roll low angle","push":true,"blk":false},{"s":4.2,"e":4.95,"t":"B","z":1.0,"cam":"guest","v":"Floor drain grate, water draining","f":"B-roll close","push":false,"blk":false},{"s":4.95,"e":5.75,"t":"B","z":1.0,"cam":"guest","v":"Harbour at dawn, open sea","f":"B-roll aerial","push":true,"blk":false},{"s":5.75,"e":6.85,"t":"P","z":1.0,"cam":"guest","v":"Guest shrugs","f":"A-cam guest MCU 100%","push":false,"blk":false},{"s":6.85,"e":8.05,"t":"B","z":1.0,"cam":"guest","v":"Empty aquarium corridor, morning light","f":"B-roll medium","push":true,"blk":false},{"s":8.05,"e":8.9,"t":"B","z":1.0,"cam":"guest","v":"Close-up of wet streak ending at the drain","f":"B-roll insert","push":false,"blk":false},{"s":8.9,"e":9.75,"t":"B","z":1.0,"cam":"guest","v":"Close-up of wet streak ending at the drain (second angle / tighter)","f":"B-roll insert \u2014 angle 2","push":false,"blk":false},{"s":9.75,"e":10.85,"t":"P","z":1.0,"cam":"host","v":"Host leans back, eyebrows up","f":"B-cam host reaction","push":false,"blk":false},{"s":10.85,"e":12.75,"t":"P","z":1.2,"cam":"guest","v":"Guest leans in: \"that's not even rare\"","f":"A-cam guest, punch 120%","push":false,"blk":false},{"s":12.75,"e":14.05,"t":"B","z":1.0,"cam":"guest","v":"Octopus flowing over reef rocks","f":"B-roll medium","push":false,"blk":false},{"s":14.05,"e":15.25,"t":"B","z":1.0,"cam":"guest","v":"Silhouette of octopus; beak circled in caption-green ring that draws on","f":"Motion graphic","push":false,"blk":false},{"s":15.25,"e":16.45,"t":"B","z":1.0,"cam":"guest","v":"Beak close-up (stock/footage)","f":"B-roll macro","push":true,"blk":false},{"s":16.45,"e":17.85,"t":"P","z":1.0,"cam":"guest","v":"Guest gestures a small gap with fingers","f":"A-cam guest MCU","push":false,"blk":false},{"s":17.85,"e":19.05,"t":"B","z":1.0,"cam":"guest","v":"Octopus squeezing through a rock crack","f":"B-roll close","push":false,"blk":false},{"s":19.05,"e":20.25,"t":"B","z":1.0,"cam":"guest","v":"Same action, last arm disappearing","f":"B-roll tighter","push":false,"blk":false},{"s":20.25,"e":21.45,"t":"P","z":1.0,"cam":"guest","v":"Hands show coin size","f":"A-cam guest wide 100%","push":false,"blk":false},{"s":21.45,"e":22.85,"t":"B","z":1.0,"cam":"guest","v":"Octopus passing through a narrow tube (lab footage)","f":"B-roll medium","push":false,"blk":false},{"s":22.85,"e":24.05,"t":"B","z":1.0,"cam":"guest","v":"Coin on dark table, top-down","f":"Insert","push":true,"blk":false},{"s":24.05,"e":24.85,"t":"P","z":1.0,"cam":"host","v":"Host laughs","f":"B-cam host laughing","push":false,"blk":false},{"s":24.85,"e":26.05,"t":"P","z":1.12,"cam":"guest","v":"Guest continues","f":"A-cam guest punch 112%","push":false,"blk":false},{"s":26.05,"e":27.35,"t":"B","z":1.0,"cam":"guest","v":"Lab tank with jar inside","f":"B-roll wide","push":true,"blk":false},{"s":27.35,"e":28.1,"t":"B","z":1.0,"cam":"guest","v":"Octopus inside jar turning the lid from inside","f":"B-roll close","push":false,"blk":false},{"s":28.1,"e":28.85,"t":"B","z":1.0,"cam":"guest","v":"Octopus inside jar turning the lid from inside (second angle / tighter)","f":"B-roll close \u2014 angle 2","push":false,"blk":false},{"s":28.85,"e":30.05,"t":"B","z":1.0,"cam":"guest","v":"Lid pops off","f":"B-roll close","push":false,"blk":false},{"s":30.05,"e":31.05,"t":"P","z":1.0,"cam":"guest","v":"Guest grinning","f":"A-cam guest MCU","push":false,"blk":false},{"s":31.05,"e":32.45,"t":"B","z":1.0,"cam":"guest","v":"Aquarium lamp glowing above tank at night","f":"B-roll wide","push":false,"blk":false},{"s":32.45,"e":33.45,"t":"B","z":1.0,"cam":"guest","v":"Water jet hits the lamp \u2192 flicker \u2192 4 black frames","f":"B-roll close","push":false,"blk":true},{"s":33.45,"e":34.85,"t":"B","z":1.0,"cam":"guest","v":"Single octopus eye in the dark","f":"B-roll macro","push":true,"blk":false},{"s":34.85,"e":36.05,"t":"P","z":1.0,"cam":"guest","v":"Guest taps temple","f":"A-cam guest MCU","push":false,"blk":false},{"s":36.05,"e":37.45,"t":"B","z":1.0,"cam":"guest","v":"Arms moving independently","f":"B-roll overhead","push":false,"blk":false},{"s":37.45,"e":38.65,"t":"B","z":1.0,"cam":"guest","v":"One arm curling around a shell","f":"B-roll close","push":false,"blk":false},{"s":38.65,"e":40.05,"t":"B","z":1.0,"cam":"guest","v":"Another arm probing a crevice","f":"B-roll close","push":false,"blk":false},{"s":40.05,"e":41.85,"t":"P","z":1.15,"cam":"guest","v":"\"\u2026not luck.\"","f":"A-cam guest punch 115%","push":false,"blk":false},{"s":41.85,"e":43.05,"t":"B","z":1.0,"cam":"guest","v":"Octopus eye opening","f":"B-roll ECU","push":false,"blk":false},{"s":43.05,"e":44.85,"t":"P","z":1.0,"cam":"host","v":"Host slowly shakes head","f":"B-cam host reaction","push":false,"blk":false},{"s":44.85,"e":46.15,"t":"B","z":1.0,"cam":"guest","v":"Octopus watching a keeper through the glass","f":"B-roll medium","push":false,"blk":false},{"s":46.15,"e":46.9,"t":"B","z":1.0,"cam":"guest","v":"Feeding-schedule whiteboard / wall clock","f":"Insert","push":true,"blk":false},{"s":46.9,"e":47.65,"t":"B","z":1.0,"cam":"guest","v":"Feeding-schedule whiteboard / wall clock (second angle / tighter)","f":"Insert \u2014 angle 2","push":true,"blk":false},{"s":47.65,"e":48.4,"t":"B","z":1.0,"cam":"guest","v":"Keeper leaves, lights switch off","f":"B-roll wide","push":false,"blk":false},{"s":48.4,"e":49.15,"t":"B","z":1.0,"cam":"guest","v":"Keeper leaves, lights switch off (second angle / tighter)","f":"B-roll wide \u2014 angle 2","push":false,"blk":false},{"s":49.15,"e":50.45,"t":"B","z":1.0,"cam":"guest","v":"Tank lid left slightly open","f":"B-roll close","push":true,"blk":false},{"s":50.45,"e":51.35,"t":"B","z":1.0,"cam":"guest","v":"Arm tip slips out of the lid gap","f":"B-roll macro","push":false,"blk":false},{"s":51.35,"e":52.25,"t":"B","z":1.0,"cam":"guest","v":"Arm tip slips out of the lid gap (second angle / tighter)","f":"B-roll macro \u2014 angle 2","push":false,"blk":false},{"s":52.25,"e":53.45,"t":"P","z":1.0,"cam":"guest","v":"Guest laughs, sits back","f":"A-cam guest wide 100%","push":false,"blk":false},{"s":53.45,"e":54.85,"t":"P","z":1.15,"cam":"guest","v":"\"I'd never keep one.\"","f":"A-cam guest punch 115%","push":false,"blk":false},{"s":54.85,"e":56.45,"t":"P","z":1.0,"cam":"host","v":"Host: \"why?\"","f":"B-cam host reaction","push":false,"blk":false},{"s":56.45,"e":57.35,"t":"B","z":1.0,"cam":"guest","v":"Octopus crossing a dark floor toward camera","f":"B-roll low angle","push":true,"blk":false},{"s":57.35,"e":58.25,"t":"B","z":1.0,"cam":"guest","v":"Octopus crossing a dark floor toward camera (second angle / tighter)","f":"B-roll low angle \u2014 angle 2","push":true,"blk":false},{"s":58.25,"e":60.0,"t":"P","z":1.2,"cam":"guest","v":"\"\u2026because it would win.\"","f":"A-cam guest punch 120%","push":false,"blk":false}],"chunks":[{"s":0.04,"e":0.542,"t":"AN OCTOPUS"},{"s":0.542,"e":1.155,"t":"ONCE ESCAPED"},{"s":1.155,"e":1.489,"t":"FROM AN"},{"s":1.489,"e":2.158,"t":"AQUARIUM"},{"s":2.158,"e":2.883,"t":"CRAWLED ACROSS"},{"s":2.883,"e":3.552,"t":"THE FLOOR"},{"s":3.552,"e":3.942,"t":"AND SLID"},{"s":3.942,"e":4.276,"t":"DOWN A"},{"s":4.276,"e":4.778,"t":"DRAIN PIPE"},{"s":4.778,"e":5.168,"t":"INTO THE"},{"s":5.168,"e":5.79,"t":"OCEAN"},{"s":5.79,"e":6.49,"t":"NOBODY SAW IT"},{"s":6.49,"e":7.126,"t":"HAPPEN"},{"s":7.126,"e":7.635,"t":"THEY JUST"},{"s":7.635,"e":8.143,"t":"FOUND THE"},{"s":8.143,"e":8.78,"t":"WET TRAIL IN"},{"s":8.78,"e":9.79,"t":"THE MORNING"},{"s":9.79,"e":10.541,"t":"AND HERE'S THE"},{"s":10.541,"e":11.355,"t":"CRAZY PART"},{"s":11.355,"e":11.919,"t":"THAT'S NOT"},{"s":11.919,"e":12.79,"t":"EVEN RARE"},{"s":12.79,"e":13.301,"t":"OCTOPUSES"},{"s":13.301,"e":13.642,"t":"HAVE NO"},{"s":13.642,"e":14.154,"t":"BONES"},{"s":14.154,"e":14.552,"t":"THE ONLY"},{"s":14.552,"e":15.12,"t":"HARD PART OF"},{"s":15.12,"e":15.745,"t":"THEIR BODY IS"},{"s":15.745,"e":16.49,"t":"THE BEAK"},{"s":16.49,"e":16.976,"t":"SO IF THE"},{"s":16.976,"e":17.532,"t":"BEAK FITS"},{"s":17.532,"e":18.156,"t":"THROUGH A"},{"s":18.156,"e":18.642,"t":"GAP"},{"s":18.642,"e":19.198,"t":"THE WHOLE"},{"s":19.198,"e":20.29,"t":"ANIMAL FITS"},{"s":20.29,"e":20.965,"t":"A FIVE-KILO"},{"s":20.965,"e":21.578,"t":"OCTOPUS CAN"},{"s":21.578,"e":22.437,"t":"SQUEEZE THROUGH"},{"s":22.437,"e":22.989,"t":"A HOLE THE"},{"s":22.989,"e":23.479,"t":"SIZE OF A"},{"s":23.479,"e":24.09,"t":"COIN"},{"s":24.09,"e":25.091,"t":"*LAUGHS* AND"},{"s":25.091,"e":25.893,"t":"THEY'RE SMART"},{"s":25.893,"e":26.628,"t":"ABOUT IT"},{"s":26.628,"e":27.029,"t":"IN LABS"},{"s":27.029,"e":27.965,"t":"THEY'VE LEARNED"},{"s":27.965,"e":28.566,"t":"TO UNSCREW"},{"s":28.566,"e":29.302,"t":"JARS FROM THE"},{"s":29.302,"e":30.09,"t":"INSIDE"},{"s":30.09,"e":30.446,"t":"THEY'LL"},{"s":30.446,"e":31.107,"t":"SHORT-CIRCUIT"},{"s":31.107,"e":31.667,"t":"THE LIGHTS BY"},{"s":31.667,"e":32.125,"t":"SQUIRTING"},{"s":32.125,"e":32.481,"t":"WATER AT"},{"s":32.481,"e":32.888,"t":"THEM"},{"s":32.888,"e":33.447,"t":"BECAUSE THEY"},{"s":33.447,"e":34.058,"t":"DON'T LIKE THE"},{"s":34.058,"e":34.89,"t":"BRIGHTNESS"},{"s":34.89,"e":35.378,"t":"TWO THIRDS OF"},{"s":35.378,"e":35.91,"t":"THEIR NEURONS"},{"s":35.91,"e":36.131,"t":"ARE IN"},{"s":36.131,"e":36.708,"t":"THEIR ARMS"},{"s":36.708,"e":37.018,"t":"SO EVERY"},{"s":37.018,"e":37.24,"t":"ARM IS"},{"s":37.24,"e":37.639,"t":"BASICALLY"},{"s":37.639,"e":38.127,"t":"THINKING FOR"},{"s":38.127,"e":38.69,"t":"ITSELF"},{"s":38.69,"e":39.319,"t":"WHICH MEANS"},{"s":39.319,"e":39.696,"t":"WHEN AN"},{"s":39.696,"e":40.827,"t":"OCTOPUS ESCAPES"},{"s":40.827,"e":41.267,"t":"IT'S NOT"},{"s":41.267,"e":41.89,"t":"LUCK"},{"s":41.89,"e":43.372,"t":"IT'S WATCHING"},{"s":43.372,"e":44.236,"t":"YOU"},{"s":44.236,"e":45.718,"t":"IT'S LEARNING"},{"s":45.718,"e":47.69,"t":"THE SCHEDULE"},{"s":47.69,"e":48.213,"t":"AND IT'S"},{"s":48.213,"e":49.183,"t":"WAITING FOR THE"},{"s":49.183,"e":49.781,"t":"ONE NIGHT"},{"s":49.781,"e":50.901,"t":"SOMEBODY FORGETS"},{"s":50.901,"e":51.647,"t":"TO CLOSE THE"},{"s":51.647,"e":52.29,"t":"LID"},{"s":52.29,"e":53.25,"t":"HONESTLY?"},{"s":53.25,"e":53.89,"t":"I'D NEVER"},{"s":53.89,"e":54.89,"t":"KEEP ONE"},{"s":54.89,"e":56.49,"t":"WHY?"},{"s":56.49,"e":57.205,"t":"NOT BECAUSE"},{"s":57.205,"e":57.49,"t":"IT'S"},{"s":57.49,"e":58.419,"t":"DANGEROUS"},{"s":58.419,"e":59.062,"t":"BECAUSE IT"},{"s":59.062,"e":60.13,"t":"WOULD WIN"}],"sb":"PBPBBBBBBPBPPBBBBBBPBBBBBBBPBBBBBBBBBBBBBPPP","sbnew":[true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,false,true,true,false,true,true,true,true,true,true,false,true,true,false,true,true,true,true,true,false,true,false,false]};
+const REPO = "https://github.com/HamzaYazidi27/Tacticalpath/blob/claude/focused-lamport-wdn13a/";
+const $ = s => document.querySelector(s);
+
+/* ---------- static sections ---------- */
+const PROFILE = [
+  ["Cuts per minute","≥ 48.8","1 fps storyboard, 43 s Short","M",.55],
+  ["Mean shot length","≤ 1.19 s","same","M",.55],
+  ["B-roll share of runtime","64–77 %","162 mid-frames / 44 storyboard frames","M",.9],
+  ["Caption coverage","100 %","206 / 206 frames","M",.95],
+  ["Caption centre","961 px of 1920 (0.501)","44 full-res covers","M",.95],
+  ["Caption fill","#19F464 (p90 #30FF7D)","pixel median, 44 covers","M",.95],
+  ["Transitions","hard cut only","0 blended or whip frames in 206","O",.85],
+  ["Speaker framing","jump between ~3 scales","same take reframed","O",.7],
+  ["Lower thirds / maps / end cards","none","206 frames","O",.9],
+  ["Image finish","sharpened, mixed grades","mean S 101/255, luma σ 60","M",.7],
+  ["Caption animation","pop, 130 ms","not visible in stills","R",.2],
+  ["Audio mix","−14 LUFS, music −18 to −22 dB","not accessible","R",.05],
+];
+$("#ptable").innerHTML = PROFILE.map(([p,v,e,l,c]) =>
+  `<tr><td>${p}</td><td class="num">${v}</td><td>${e}</td><td><b class="pill ${l}">${l}</b></td>
+   <td><div class="conf"><div class="bar"><i style="width:${Math.round(c*100)}%"></i></div><span>${Math.round(c*100)}</span></div></td></tr>`).join("");
+
+const SW = [["#19F464","Caption fill","M"],["#30FF7D","Fill highlight","M"],["#0A3D16","Hard shadow","I"],
+            ["#06260D","Outline rim","I"],["#E6E2DE","Watermark light","M"],["#54BB6F","Watermark accent","M"]];
+$("#swatches").innerHTML = SW.map(([h,n,l]) => `<button class="sw" type="button" data-hex="${h}" aria-label="Copy ${h}">
+  <span class="chip" style="background:${h}"></span><span class="h">${h}</span><span class="r">${n} <b class="pill ${l}">${l}</b></span><span class="ok"></span></button>`).join("");
+document.querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => {
+  const ok = b.querySelector(".ok"), hex = b.dataset.hex;
+  const done = t => { ok.textContent = t; setTimeout(() => ok.textContent = "", 1400); };
+  try { navigator.clipboard.writeText(hex).then(() => done("Copied"), () => done(hex)); } catch (e) { done(hex); }
+}));
+
+$("#strip").innerHTML = [...DATA.sb].map((c,i) => `<div class="${c}${i>0 && DATA.sbnew[i] ? " cut":""}" title="${i} s · ${c==="P"?"speaker":"B-roll"}"></div>`).join("");
+
+const FLOW = [["Pick the clip","35–60 s story, 6+ showable nouns"],["Prep dialogue","Start on the claim, cut gaps over 300 ms"],
+ ["Word timestamps","WhisperX or editor transcript"],["Footage research","1–3 clips per noun, licence logged"],
+ ["Organise","Reframe to 9:16, upscale low-res"],["Storyboard","One row per caption chunk, A or B"],
+ ["Rough cut","Dialogue + speaker with punch-ins"],["B-roll fine cut","First frame 0–2 frames before the noun"],
+ ["Graphics","Usually none; callout at most 1.5 s"],["Captions","make_captions.py or CP_Caption style"],
+ ["Colour","Balance, then LUT 80 % + sharpen"],["Sound design","Bed from 0 s, sparse literal SFX"],
+ ["Mix","−14 LUFS, −1 dBTP, music ducked"],["QC + export","Forensic check, H.264 Shorts + ProRes master"]];
+$("#flow").innerHTML = FLOW.map(([t,d],i) => `<div class="step"><span class="no">STEP ${String(i+1).padStart(2,"0")}</span><b>${t}</b><span>${d}</span></div>`).join("");
+
+const FILES = [["Channel Analysis Report","docs/01_CHANNEL_ANALYSIS_REPORT.md"],["Editing Style Bible","docs/02_EDITING_STYLE_BIBLE.md"],
+ ["Technical Editing Blueprint","docs/03_TECHNICAL_EDITING_BLUEPRINT.md"],["Editing Workflow SOP","docs/04_EDITING_WORKFLOW_SOP.md"],
+ ["Preset Specification","docs/05_PRESET_SPECIFICATION.md"],["60-s Demo Storyboard","docs/06_DEMO_STORYBOARD_60S.md"],
+ ["Style profile (JSON)","docs/07_style_profile.json"],["Caption generator","templates/captions/make_captions.py"],
+ ["Finish LUT","templates/luts/crisp_pop_709.cube"],["FFmpeg templates","templates/ffmpeg/finish_and_export.sh"],
+ ["Forensic tools","tools/forensics/run_all.sh"],["Rendered animatic","demo/animatic_60s.mp4"]];
+$("#fileList").innerHTML = FILES.map(([t,p]) => `<a href="${REPO}${p}" target="_blank" rel="noopener"><b>${t}</b><span>${p}</span></a>`).join("");
+
+/* ---------- program monitor ---------- */
+const S = DATA.shots, C = DATA.chunks, TOTAL = S[S.length-1].e;
+const tl = $("#tl"), headEl = document.createElement("div");
+tl.innerHTML = S.map(s => `<div class="seg ${s.t}" style="width:${((s.e-s.s)/TOTAL*100).toFixed(3)}%"></div>`).join("");
+headEl.className = "head"; tl.appendChild(headEl);
+
+function hueFor(i){ return (i*137.5)%360; }
+let curShot = -1, curChunk = -1, anim = null;
+function renderShot(i){
+  const s = S[i], el = $("#shot");
+  if (anim) { anim.cancel(); anim = null; }
+  if (s.t === "P"){
+    const host = s.cam === "host";
+    el.style.background = host ? "radial-gradient(90% 70% at 50% 30%,#3b3550,#15121d 70%)" : "radial-gradient(90% 70% at 50% 30%,#5a4030,#1a1210 70%)";
+    el.innerHTML = `<div class="sil" style="transform:scale(${s.z});--skin:${host?"#8a7366":"#7b5f50"};--shirt:${host?"#2c3340":"#24262b"}"><div class="body"></div><div class="head"></div><div class="mic"></div></div>`;
+  } else {
+    const h = hueFor(i+3);
+    el.style.background = `linear-gradient(170deg,hsl(${h} 45% 34%),hsl(${(h+30)%360} 50% 9%))`;
+    el.innerHTML = `<div class="blob" style="background:hsl(${(h+180)%360} 60% 60%)"></div><div class="desc">${s.v}</div>`;
+    if (s.push && !reduce) anim = el.animate([{transform:"scale(1)"},{transform:"scale(1.06)"}], {duration:(s.e-s.s)*1000, easing:"linear", fill:"forwards"});
+  }
+  $("#slate").textContent = `SHOT ${String(i+1).padStart(2,"0")} · ${s.t==="P" ? "A-ROLL" : "B-ROLL"} · ${(s.e-s.s).toFixed(2)}s`;
+  $("#mShot").innerHTML = `${String(i+1).padStart(2,"0")}<small> / ${S.length}</small>`;
+  $("#mNow").textContent = s.t==="P" ? s.f : s.v;
+}
+function fmt(t){ const m = Math.floor(t/60), s = t - m*60; return `${String(m).padStart(2,"0")}:${s.toFixed(2).padStart(5,"0")}`; }
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let t = 0, playing = false, last = 0;
+function update(){
+  const si = S.findIndex(s => t >= s.s && t < s.e); const i = si < 0 ? S.length-1 : si;
+  if (i !== curShot){ curShot = i; renderShot(i); }
+  const s = S[i]; $("#black").style.display = (s.blk && t > s.e - 4/30) ? "block" : "none";
+  const ci = C.findIndex(c => t >= c.s && t < c.e);
+  if (ci !== curChunk){ curChunk = ci; const cap = $("#cap");
+    cap.textContent = ci >= 0 ? C[ci].t : (curChunk === -1 && t < 0.05 ? C[0].t : cap.textContent);
+    if (ci >= 0 && !reduce){ cap.classList.remove("pop"); void cap.offsetWidth; cap.classList.add("pop"); } }
+  headEl.style.left = (t/TOTAL*100) + "%";
+  tl.setAttribute("aria-valuenow", t.toFixed(1));
+  $("#tc").textContent = `${fmt(t)} / ${fmt(TOTAL)}`;
+  const cuts = S.filter(x => x.s > 0 && x.s <= t).length;
+  $("#mCpm").innerHTML = t > 3 ? `${(cuts/t*60).toFixed(1)}<small> /min</small>` : `${cuts}<small> cuts</small>`;
+  const bt = S.reduce((a,x) => a + (x.t==="B" ? Math.max(0, Math.min(t,x.e) - x.s) : 0), 0);
+  $("#mBroll").innerHTML = t > 1 ? `${Math.round(bt/t*100)}<small> %</small>` : "—";
+}
+function frame(now){
+  if (!playing) return;
+  const dt = (now - last)/1000; last = now; t += dt;
+  if (t >= TOTAL) t = 0;   // loop, like the Short
+  update(); requestAnimationFrame(frame);
+}
+function setPlay(p){
+  playing = p; $("#play").textContent = p ? "Pause" : "Play";
+  $("#bay").classList.toggle("paused", !p); $("#state").textContent = p ? "Program · playing" : "Program · paused";
+  if (p){ last = performance.now(); requestAnimationFrame(frame); } else if (anim) anim.pause();
+}
+$("#play").addEventListener("click", () => setPlay(!playing));
+function seek(clientX){ const r = tl.getBoundingClientRect(); t = Math.max(0, Math.min(TOTAL-0.01, (clientX - r.left)/r.width*TOTAL)); curShot = -1; curChunk = -2; update(); }
+tl.addEventListener("click", e => seek(e.clientX));
+tl.addEventListener("keydown", e => {
+  if (e.key === "ArrowRight" || e.key === "ArrowLeft"){ e.preventDefault(); t = Math.max(0, Math.min(TOTAL-0.01, t + (e.key==="ArrowRight"?1:-1))); curShot=-1; curChunk=-2; update(); }
+});
+document.addEventListener("keydown", e => { if (e.code === "Space" && !/INPUT|TEXTAREA|BUTTON/.test(document.activeElement.tagName)){ e.preventDefault(); setPlay(!playing); } });
+function toggle(btn, cls, target){ btn.addEventListener("click", () => { const on = btn.getAttribute("aria-pressed") !== "true"; btn.setAttribute("aria-pressed", on); target.classList.toggle(cls, on); }); }
+toggle($("#tSafe"), "show-safe", $("#screen"));
+toggle($("#tCenter"), "show-center", $("#screen"));
+$("#tSlate").addEventListener("click", e => { const on = e.currentTarget.getAttribute("aria-pressed") !== "true"; e.currentTarget.setAttribute("aria-pressed", on); $("#slate").hidden = !on; });
+
+update();
+$("#cap").textContent = C[0].t;
+if (!reduce) setPlay(true); else setPlay(false);
+</script>
