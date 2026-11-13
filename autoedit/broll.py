@@ -270,6 +270,8 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
             if r:
                 return r
         for name, prov in remote:
+            if _time.time() > deadline:
+                break
             try:
                 r = (prov.find(q, limit=2) if name in ("pexels", "pixabay")
                      else prov.find(q, limit=1, verify=verify_as))
@@ -290,7 +292,21 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
                 r = [dict(a, query=q) for a in search(h, q, index, kind, remote)]
         return [a for a in r if a.get("kind") == kind]
 
+    import time as _time
+    deadline = _time.time() + cfg.broll_time_budget
+    for _, prov in video_remote + photo_remote:
+        prov.deadline = deadline
+    done = {"n": 0}
+
     def lookup(q: str) -> list[dict]:
+        if _time.time() > deadline:
+            return []                                                # budget spent: the edit goes on
+        r = _lookup_one(q)
+        done["n"] += 1
+        log(f"b-roll [{done['n']}/{len(uniq)}] '{q}' → {(str(r[0].get('source') or 'library') + ' ' + str(r[0].get('kind'))) if r else 'none'}")
+        return r
+
+    def _lookup_one(q: str) -> list[dict]:
         r = stage(q, vid_index, "video", video_remote)               # 1) a video that shows it
         if not r and cfg.photo_fallback:
             r = stage(q, img_index, "image", photo_remote)           # 2) else a real photo, smooth push-in
@@ -304,9 +320,11 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
         if q not in uniq:
             uniq.append(q)
     uniq = uniq[: max(needed, 1)]
-    # CLIP is memory-hungry: one search at a time when vision is on (network waits are cached anyway)
-    with ThreadPoolExecutor(max_workers=1 if use_vision else (3 if video_remote else 1)) as ex:
+    # downloads run 3 at a time; CLIP itself is serialised by a lock in vision.py (bounded memory)
+    with ThreadPoolExecutor(max_workers=3 if (video_remote or photo_remote) else 1) as ex:
         by_query = dict(zip(uniq, ex.map(lookup, uniq)))
+    if _time.time() > deadline:
+        log(f"b-roll: time budget ({cfg.broll_time_budget:.0f} s) reached — continuing with what was found")
     found = {idx: by_query[q] for idx, q in order if by_query.get(q)}
     for lst in found.values():
         for a in lst:

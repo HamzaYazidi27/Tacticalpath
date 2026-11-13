@@ -51,7 +51,7 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
         plans = []
         for n, clip in enumerate(clips, 1):
             log(f"clip {n}: {clip['start']:.1f}–{clip['end']:.1f}s ({clip['dur']:.0f}s, {clip['source']}) «{clip['title'][:60]}»")
-            needed = int(clip["dur"] * cfg.broll_share / 1.1) + 8
+            needed = int(clip["dur"] * cfg.broll_share / 1.3) + 3   # what the edit can actually place
             found, generic = broll.resolve(clip["queries"], cfg, out_root / "_broll_cache", src, scenes, clip, needed)
             p = planner.plan(words, clip, found, generic, cfg)
             if p["stats"]["cuts_per_min"] < cfg.target_cuts_per_min - 4:   # self-correct the rhythm once

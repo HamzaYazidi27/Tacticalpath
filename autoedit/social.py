@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -129,8 +130,9 @@ def _asset(path: Path, query: str, credit: str, license_: str, m: dict, source: 
 class YouTubeCC:
     SEARCH = "https://www.youtube.com/results?search_query={q}&sp=EgIwAQ%253D%253D"   # sp = Creative Commons filter
 
-    def __init__(self, cache: Path, candidates: int = 4):
+    def __init__(self, cache: Path, candidates: int = 2):
         self.cache, self.candidates = cache / "youtube_cc", candidates
+        self.deadline = float("inf")
         self.failures, self.disabled = 0, False          # circuit breaker: stop hammering a blocked network
 
     def _fail(self, hard: bool = False):
@@ -200,6 +202,8 @@ class YouTubeCC:
                    and not UNSAFE.search(e.get("title") or "")]
         out = []
         for e in entries[: self.candidates]:
+            if time.time() > self.deadline:
+                break
             vid = e.get("id")
             try:
                 with self._ydl({"skip_download": True, "format": "bv*[height<=1080][protocol^=http]/b[protocol^=http]"}) as y:
@@ -216,8 +220,9 @@ class YouTubeCC:
             dur = float(info.get("duration") or 0)
             hint = self.caption_hint(info, query)
             # 1) low-res preview of the useful part only (around the caption hit, else the first 5 min)
-            w0, w1 = (max(0.0, hint - 10), min(dur, hint + 15)) if hint is not None else (0.0, min(dur, 300.0))
-            scan = self._download(vid, w0, w1, "bv*[height<=360]/bv*[height<=480]/b[height<=480]", f"{vid}_scan_{int(w0)}")
+            # small preview only: 15 s around the spoken word, else the first 90 s, at 240p
+            w0, w1 = (max(0.0, hint - 5), min(dur, hint + 10)) if hint is not None else (0.0, min(dur, 90.0))
+            scan = self._download(vid, w0, w1, "bv*[height<=240]/bv*[height<=360]/b[height<=360]", f"{vid}_scan_{int(w0)}")
             if not scan:
                 if self.disabled:
                     return out
@@ -365,6 +370,7 @@ class Mixkit:
 
     def __init__(self, cache: Path, candidates: int = 4):
         self.cache, self.candidates = cache / "mixkit", candidates
+        self.deadline = float("inf")
 
     def _search(self, query: str) -> list[tuple[str, str]]:
         import hashlib
@@ -392,26 +398,34 @@ class Mixkit:
         items = [it for it in items if not UNSAFE.search(it[0].replace("-", " "))]
         items = sorted(items, key=lambda it: -len(words & set(it[0].split("-"))))
         out = []
+        self.cache.mkdir(parents=True, exist_ok=True)
+
+        def fetch(vid, resolutions, dest):
+            if dest.exists():
+                return dest
+            for res in resolutions:
+                try:
+                    req = urllib.request.Request(self.ASSET.format(id=vid, res=res), headers=self.BROWSER)
+                    with urllib.request.urlopen(req, timeout=60) as r:
+                        dest.write_bytes(r.read())
+                    return dest
+                except Exception:
+                    continue
+            return None
         for title, vid in items[: self.candidates]:
-            dest = self.cache / f"{vid}.mp4"
-            if not dest.exists():
-                for res in ("1080", "720"):
-                    try:
-                        req = urllib.request.Request(self.ASSET.format(id=vid, res=res), headers=self.BROWSER)
-                        with urllib.request.urlopen(req, timeout=60) as r:
-                            dest.write_bytes(r.read())
-                        break
-                    except Exception:
-                        continue
-            if not dest.exists():
+            if time.time() > self.deadline:
+                break
+            scan = fetch(vid, ("360", "720"), self.cache / f"{vid}_scan.mp4")     # light file to judge it
+            if not scan:
                 continue
-            dur = probe(dest)["duration"]
-            m = vision.best_moment(str(dest), dur, vq, samples=10)
+            dur = probe(scan)["duration"]
+            m = vision.best_moment(str(scan), dur, vq, samples=10)
             if not m:
                 continue
             need = set(re.findall(r"[a-z]{3,}", vq.lower())) - {"the", "and", "with"}
             if len(need) >= 2 and not need <= set(title.split("-")) and m["prob"] < 0.985:
                 continue                    # phrase only half in the title: demand a near-certain visual match
+            dest = fetch(vid, ("1080", "720"), self.cache / f"{vid}.mp4") or scan   # HD only for the winner
             a = _asset(dest, query, f"\"{title.replace('-', ' ')}\" — https://mixkit.co/free-stock-video/{title}-{vid}/ "
                        "— Mixkit Stock Video Free License", "Mixkit Free License", {**m, "t_local": m["t"]}, "mixkit")
             if a:

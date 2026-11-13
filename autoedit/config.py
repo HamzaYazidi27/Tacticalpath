@@ -56,6 +56,7 @@ class Config:
                                                          "mixkit", "wikimedia", "openverse"])   # + "archive" on request
     photo_fallback: bool = True                       # video first; a real photo only when no video shows the word
     broll_urls: list = field(default_factory=list)   # links (or .txt files of links) to footage you may reuse
+    broll_time_budget: float = 240.0                  # seconds spent searching B-roll, then the edit goes on
     vision: str = "auto"                              # auto | on | off — CLIP check that B-roll shows the word
     # --- montage mode (no speech)
     montage_text: str = ""

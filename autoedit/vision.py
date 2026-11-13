@@ -32,6 +32,8 @@ def unsafe_mask(emb: np.ndarray, query_sim: np.ndarray) -> np.ndarray:
     return (emb @ embed_texts(SAFETY).T).max(1) >= query_sim
 
 _model = None
+import threading as _threading
+_LOCK = _threading.Lock()
 
 
 def available() -> bool:
@@ -45,7 +47,9 @@ def available() -> bool:
 
 def _load():
     global _model
-    if _model is None:
+    with _LOCK:
+        if _model is not None:
+            return _model
         import torch
         from transformers import CLIPModel, CLIPProcessor
         torch.set_num_threads(max(1, torch.get_num_threads()))
@@ -59,7 +63,7 @@ def embed_images(images) -> np.ndarray:
     m, p = _load()
     out = []
     for i in range(0, len(images), 32):
-        with torch.no_grad():
+        with _LOCK, torch.no_grad():
             x = p(images=images[i:i + 32], return_tensors="pt")
             e = m.get_image_features(**x)
             e = e if isinstance(e, torch.Tensor) else e.pooler_output
@@ -70,7 +74,7 @@ def embed_images(images) -> np.ndarray:
 def embed_texts(texts) -> np.ndarray:
     import torch
     m, p = _load()
-    with torch.no_grad():
+    with _LOCK, torch.no_grad():
         x = p(text=list(texts), return_tensors="pt", padding=True)
         e = m.get_text_features(**x)
         e = e if isinstance(e, torch.Tensor) else e.pooler_output

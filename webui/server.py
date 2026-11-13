@@ -105,6 +105,11 @@ def _update_from_line(job: dict, line: str):
                 job["progress"] = max(job.get("progress", 0), pct)
             elif job.get("progress", 0) < 58:
                 job["progress"] = min(58, job.get("progress", 33) + 1)
+    m = re.search(r"b-roll \[(\d+)/(\d+)\]", line)
+    if m:
+        k, n = int(m.group(1)), int(m.group(2))
+        job["stage"] = f"Recherche B-roll ({k}/{n})"
+        job["progress"] = max(job.get("progress", 0), 33 + int(25 * k / max(n, 1)))
     m = re.search(r"✔ (\S+_short(\d+)\.mp4)", line)
     if m:
         job.setdefault("outputs", []).append(m.group(1))
