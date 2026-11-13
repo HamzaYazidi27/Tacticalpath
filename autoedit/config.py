@@ -51,6 +51,10 @@ class Config:
     pexels_key: str = field(default_factory=lambda: os.environ.get("PEXELS_API_KEY", ""))
     pixabay_key: str = field(default_factory=lambda: os.environ.get("PIXABAY_API_KEY", ""))
     online_broll: bool = True
+    broll_sources: list = field(default_factory=lambda: ["library", "urls", "pexels", "pixabay", "wikimedia",
+                                                         "youtube_cc", "openverse"])   # + "archive" (slow) on request
+    broll_urls: list = field(default_factory=list)   # links (or .txt files of links) to footage you may reuse
+    vision: str = "auto"                              # auto | on | off — CLIP check that B-roll shows the word
     # --- montage mode (no speech)
     montage_text: str = ""
     montage_dur: float = 35.0

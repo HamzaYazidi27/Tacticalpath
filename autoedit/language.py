@@ -23,6 +23,10 @@ j'ai il y ça cela ceci là voilà euh ben bah genre truc trucs chose choses vra
 el la los las un una unos unas de del y en que es son por para con sin pero como muy más este esta esto eso ese esa lo le les se
 """.split())
 
+ABSTRACT = set("""asking ask asked feel feels feeling know knew need needs wear bring give gave gonna wanna gotta questions
+question answer potential level care stuff thing things point reason way kind sort part fact idea talk talking said saying
+fuck fucking shit damn bitch ass hell nobody nobody's somebody everybody anybody anyone everyone someone""".split())
+
 FILLERS = {"um", "uh", "erm", "hmm", "uhm", "euh", "eh", "ah", "mm", "mhm"}
 
 HOOK_WORDS = set("""never always most rarest rare deadliest deadly dangerous worst best biggest largest smallest fastest strongest
@@ -79,7 +83,7 @@ def keywords(words: list[dict], i0: int, i1: int, top: int = 40) -> list[dict]:
         b = bare(words[k]["word"])
         if len(b) < 3 or b in STOP or b in FILLERS or b.isdigit():
             continue
-        if b.endswith("ly") and b not in VISUAL:
+        if (b.endswith("ly") and b not in VISUAL) or b in ABSTRACT:
             continue
         occ.setdefault(b, []).append(k)
         if b not in best:
@@ -88,8 +92,34 @@ def keywords(words: list[dict], i0: int, i1: int, top: int = 40) -> list[dict]:
             q = b[:-1] if b.endswith("s") and len(b) > 4 and b[:-1] in VISUAL else b
             best[b] = (round(score, 2), q)
     ranked = sorted(best, key=lambda w: -best[w][0])[:top]
-    out = [{"idx": k, "word": w, "query": best[w][1], "score": best[w][0]} for w in ranked for k in occ[w]]
+    out = [{"idx": k, "word": w, "query": phrase(words, k, i1) or best[w][1], "score": best[w][0]}
+           for w in ranked for k in occ[w]]
     return out
+
+
+def _content(w: str) -> bool:
+    b = bare(w)
+    return len(b) >= 3 and b not in STOP and b not in FILLERS and b not in ABSTRACT and not b.isdigit()
+
+
+def phrase(words: list[dict], k: int, i1: int) -> str | None:
+    """Noun phrase starting at word k: 'glass of water', 'baby powder', 'sea turtle' → better footage searches."""
+    if not _content(words[k]["word"]) or re.search(r"[,.!?]$", words[k]["word"]):
+        return None
+    parts, j = [bare(words[k]["word"])], k + 1
+    while j <= i1 and len(parts) < 3:
+        b = bare(words[j]["word"])
+        if b in ("of", "de", "du") and j + 1 <= i1 and _content(words[j + 1]["word"]):
+            parts += [b, bare(words[j + 1]["word"])]
+            j += 2
+        elif _content(words[j]["word"]):
+            parts.append(b)
+            j += 1
+        else:
+            break
+        if re.search(r"[,.!?]$", words[j - 1]["word"]):
+            break
+    return " ".join(parts) if len(parts) > 1 else None
 
 
 HOOK_PHRASES = ("did you know", "imagine", "here's the", "the craziest", "true story", "nobody knows", "the reason",

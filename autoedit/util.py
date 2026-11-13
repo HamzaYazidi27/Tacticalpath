@@ -19,9 +19,19 @@ def log(msg: str) -> None:
     print(f"[autoedit {time.time() - _T0:6.1f}s] {msg}", flush=True)
 
 
+def proc_env() -> dict:
+    """Environment for ffmpeg/ffprobe: they only read `http_proxy`, so forward HTTPS_PROXY when set."""
+    import os
+    env = dict(os.environ)
+    px = env.get("HTTPS_PROXY") or env.get("https_proxy")
+    if px and not env.get("http_proxy"):
+        env["http_proxy"] = px
+    return env
+
+
 def run(cmd: list[str], quiet: bool = True) -> subprocess.CompletedProcess:
     """Run a command; raise with stderr tail on failure."""
-    p = subprocess.run([str(c) for c in cmd], capture_output=True, text=True)
+    p = subprocess.run([str(c) for c in cmd], capture_output=True, text=True, env=proc_env())
     if p.returncode != 0:
         tail = "\n".join((p.stderr or "").strip().splitlines()[-15:])
         raise RuntimeError(f"command failed ({p.returncode}): {' '.join(map(str, cmd[:6]))} …\n{tail}")

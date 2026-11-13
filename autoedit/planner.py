@@ -81,9 +81,13 @@ def plan(words, clip, found, generic, cfg):
     anchors = sorted((by_src[k]["start"], k) for k in found if k in by_src)
     b_shots, run_start, last_end, uses = [], None, 0.0, {}
     for n, (t, k) in enumerate(anchors):
+        if t - lead < min_start - 0.25:
+            continue                        # said too early for B-roll: never shift a picture onto another word
         start = _q(max(t - lead, min_start))
         if b_shots and start < last_end:
-            continue
+            if last_end - start > 0.35:
+                continue
+            start = _q(last_end)            # word still being spoken: chain straight after the previous picture
         if b_shots and start - last_end < 0.75 and start - last_end > 1e-3:
             start = _q(last_end)            # avoid a sub-0.75 s speaker flash: make the run contiguous
         contiguous = bool(b_shots) and abs(start - last_end) < 1e-3

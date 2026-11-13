@@ -4,3 +4,4 @@ opencv-python-headless>=4.8,<5   # face tracking + scene analysis (OpenCV 5 drop
 numpy>=1.24
 pillow>=9
 anthropic>=0.70              # optional: Claude picks the best story + writes B-roll queries (needs ANTHROPIC_API_KEY)
+yt-dlp[default]              # YouTube Creative Commons search + your own links (TikTok, Instagram…). Needs deno or node.

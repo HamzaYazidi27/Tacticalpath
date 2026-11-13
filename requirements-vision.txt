@@ -1,0 +1,5 @@
+# Optional but strongly recommended: CLIP visual check — B-roll must SHOW the spoken word, cued to the right second.
+# CPU build of torch (~200 MB). On a machine with an NVIDIA GPU you can use the default torch wheel instead.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+transformers>=4.40

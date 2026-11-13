@@ -14,6 +14,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install --upgrade pip >/dev/null
 pip install -r requirements.txt
+pip install -r requirements-vision.txt || echo "⚠ vision (CLIP) not installed — B-roll will be matched by name only"
 echo "Downloading the speech model (once)…"
 python - <<'PY'
 from faster_whisper import WhisperModel

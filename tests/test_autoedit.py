@@ -121,3 +121,64 @@ class TestBrollAndBrand(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestSocialSources(unittest.TestCase):
+    def test_license_filter(self):
+        from autoedit.social import license_ok
+        ok = ["Creative Commons Attribution license (reuse allowed)", "CC BY 4.0", "CC0", "Public domain",
+              "https://creativecommons.org/licenses/by/4.0/", "http://creativecommons.org/publicdomain/zero/1.0/"]
+        bad = ["CC BY-SA 4.0", "CC BY-NC 2.0", "https://creativecommons.org/licenses/by-nc-sa/3.0/",
+               "Standard YouTube License", ""]
+        self.assertTrue(all(license_ok(x) for x in ok))
+        self.assertFalse(any(license_ok(x) for x in bad))
+
+    def test_youtube_caption_hint(self):
+        from autoedit import social
+        info = {"automatic_captions": {"en": [{"ext": "json3", "url": "https://x/subs"}]}}
+        subs = {"events": [{"tStartMs": 1000, "segs": [{"utf8": "look at the"}]},
+                           {"tStartMs": 4200, "segs": [{"utf8": "big", "tOffsetMs": 0}, {"utf8": " baboon", "tOffsetMs": 300}]}]}
+        with mock.patch.object(social, "_get_json", return_value=subs):
+            self.assertAlmostEqual(social.YouTubeCC.caption_hint(info, "baboon"), 4.5)
+
+    def test_openverse_keeps_licensed_relevant_photo(self):
+        import numpy as np
+        from PIL import Image
+        from autoedit import social, vision
+        tmp = Path(__file__).resolve().parent / "_tmp_ov"
+        api = {"results": [
+            {"id": "a", "url": "https://img/a.jpg", "width": 1024, "height": 768, "license": "by", "license_version": "2.0",
+             "creator": "Ann", "title": "Baboon", "foreign_landing_url": "https://flickr/a"},
+            {"id": "b", "url": "https://img/b.jpg", "width": 1024, "height": 768, "license": "by-nc", "license_version": "2.0",
+             "creator": "Bob", "title": "Baboon NC", "foreign_landing_url": "https://flickr/b"}]}
+        tmp.mkdir(exist_ok=True)
+        Image.fromarray(np.zeros((40, 40, 3), np.uint8)).save(tmp / "openverse_a.jpg")
+
+        class FakeResp:
+            def __init__(self, data): self.data = data
+            def read(self): return self.data
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+        jpg = (tmp / "openverse_a.jpg").read_bytes()
+        with mock.patch.object(social, "_get_json", return_value=api), \
+             mock.patch.object(social.urllib.request, "urlopen", return_value=FakeResp(jpg)), \
+             mock.patch.object(vision, "embed_images", return_value=np.zeros((1, 512))), \
+             mock.patch.object(vision, "score", return_value=(np.array([0.95]), np.array([0.3]))):
+            res = social.Openverse(tmp).find("baboon")
+        import shutil
+        shutil.rmtree(tmp, ignore_errors=True)
+        self.assertEqual(len(res), 1)                       # the NC photo was never even downloaded
+        self.assertIn("Ann", res[0]["credit"])
+        self.assertEqual(res[0]["kind"], "image")
+
+
+class TestPlacementRules(unittest.TestCase):
+    def test_early_word_is_not_shifted_onto_another_word(self):
+        w = fake_words("Nobody wants this. A glass of water sits on the table near the sea and the beach.")
+        cfg = Config(min_dur=1, max_dur=60, target_dur=10, llm="off")
+        clip = {"i0": 0, "i1": len(w) - 1, "start": 0, "end": w[-1]["end"], "queries": {0: "nobody", 4: "glass of water"}}
+        found = {0: [{"path": "/a.jpg", "kind": "image"}], 4: [{"path": "/b.jpg", "kind": "image"}]}
+        p = planner.plan(w, clip, found, [], cfg)
+        keys = [s.get("key") for s in p["shots"] if s["kind"] == "B"]
+        self.assertNotIn(0, keys)                          # word at t=0 can't get B-roll (speaker first)
+        self.assertIn(4, keys)

@@ -35,6 +35,12 @@ def build_cfg(a) -> Config:
         cfg.broll_dirs = list(cfg.broll_dirs) + a.broll
     if a.music:
         cfg.music_dirs = list(cfg.music_dirs) + a.music
+    if a.broll_urls:
+        cfg.broll_urls = list(cfg.broll_urls) + a.broll_urls
+    if a.sources:
+        cfg.broll_sources = [x.strip() for x in a.sources.split(",") if x.strip()]
+    if a.vision:
+        cfg.vision = a.vision
     if a.offline:
         cfg.online_broll = False
     if a.text:
@@ -75,6 +81,11 @@ def main(argv=None):
     ap.add_argument("--watch", metavar="INBOX", help="process every video dropped into this folder, forever")
     ap.add_argument("--broll", action="append", help="folder of B-roll clips/images (repeatable)")
     ap.add_argument("--music", action="append", help="folder of music tracks (repeatable)")
+    ap.add_argument("--broll-urls", action="append", dest="broll_urls",
+                    help="link, or .txt file of links (YouTube, TikTok…), to footage you own or may reuse (repeatable)")
+    ap.add_argument("--sources", help="B-roll source order, comma separated "
+                    "(library,urls,pexels,pixabay,wikimedia,youtube_cc,archive)")
+    ap.add_argument("--vision", choices=["auto", "on", "off"], help="CLIP visual check of B-roll (auto = if installed)")
     ap.add_argument("--brand", help="watermark text locked under the captions")
     ap.add_argument("--count", type=int, help="number of Shorts to cut from each input (default 1)")
     ap.add_argument("--min-dur", type=float, dest="min_dur")

@@ -56,20 +56,39 @@ python -m autoedit episode.mp4 --count 3 --brand "WILD|FRAME"
 
 Le `|` indique où la marque change de couleur : `WILD` en blanc, `FRAME` en vert.
 
-## Pour un résultat complet : les sources de B-roll
+## B-roll réel, qui montre exactement ce qui est dit
 
-Le style repose à 65–77 % sur du B-roll. Le système en trouve automatiquement, dans cet ordre :
+Pour chaque mot ou expression à illustrer (« glass of water », « baby powder », « monkey butt »…), le système cherche de **vraies images** dans les sources ci-dessous, dans cet ordre (modifiable avec `--sources`) :
 
-1. **Votre dossier `broll/`** (`--broll`). Nommez les fichiers par sujet, par exemple `requin_blanc_ocean.mp4` ou `lion savane.jpg`, ou ajoutez un `.txt` du même nom avec des mots-clés.
-2. **Pexels**, gratuit : créez une clé sur pexels.com/api, puis lancez `export PEXELS_API_KEY=...`. Chaque mot-clé est alors illustré automatiquement, et les crédits sont écrits dans `*_credits.txt`.
-3. **Pixabay**, gratuit : `export PIXABAY_API_KEY=...`.
-4. **Plans de coupe trouvés dans votre propre vidéo** : les passages sans visage.
+| Source | Contenu | Licence vérifiée |
+|---|---|---|
+| `library` : votre dossier `broll/` (`--broll`) | Vos clips et photos | Les vôtres |
+| `urls` : vos liens (`--broll-urls liens.txt`) | Vidéos **YouTube, TikTok, Instagram, X…** que vous possédez ou avez le droit d'utiliser | Votre responsabilité |
+| `pexels`, `pixabay` (clé gratuite) | Vidéos stock réelles | Licence Pexels / Pixabay |
+| `wikimedia` | Vidéos réelles de Wikimedia Commons | CC0, domaine public, CC BY |
+| `youtube_cc` | Vidéos **YouTube sous licence Creative Commons** (licence revérifiée vidéo par vidéo) | CC BY uniquement |
+| `openverse` | Vraies photos (Flickr, musées…), animées par un zoom lent | CC0, PDM, CC BY |
+| `archive` (sur demande) | Films d'Internet Archive | Domaine public, CC BY |
 
-Sans aucune source, le Short reste monté (punch-ins, sous-titres, rythme), mais le rapport signalera `b-roll share` en ⚠️.
+**Comment le système garantit que l'image montre le mot (vision CLIP, locale et gratuite) :**
+1. Pour une vidéo YouTube, les sous-titres du clip indiquent à quelle seconde le mot y est prononcé.
+2. CLIP regarde les images autour de ce moment et ne garde que celles qui **montrent** vraiment le mot. Il les compare à « une personne qui parle », « du texte à l'écran », « un écran noir »…
+3. Seules les ~4 secondes qui correspondent sont téléchargées en haute qualité, puis calées au mot près dans le montage.
+
+Votre bibliothèque locale est indexée de la même façon : la recherche se fait par le **contenu de l'image**, plus seulement par le nom du fichier.
+
+**Ce qui est exclu volontairement :**
+- **Les vidéos YouTube ou TikTok sans licence de réutilisation** (« Standard YouTube License », TikTok en général). Les reprendre automatiquement expose à des strikes copyright, à la démonétisation et à la suppression de la chaîne. Si un créateur vous donne son accord, ajoutez ses liens dans `--broll-urls`.
+- **Les licences NC** (non commercial, incompatible avec une chaîne monétisée), **ND** (pas de modification) et **SA** (elle obligerait à mettre tout votre Short sous la même licence).
+- **Les photos centrées sur le visage d'un inconnu**, quand le mot ne parle pas de personnes (droit à l'image).
+
+Tous les crédits sont écrits dans `*_credits.txt` : copiez-les dans la description de la vidéo, la licence CC BY l'exige.
+
+**Installation de la vision** (incluse dans `install.sh`) : `pip install -r requirements-vision.txt` (~800 Mo, une fois). Sans elle, seules `library`, `urls`, `pexels` et `pixabay` sont utilisées, avec une correspondance par nom de fichier.
 
 **Musique :** mettez des pistes libres de droits dans `music/`. Le système en choisit une, la règle à environ −19 dB sous la voix et la baisse automatiquement quand la personne parle.
 
-**Optionnel, Claude :** avec `export ANTHROPIC_API_KEY=...`, Claude choisit l'histoire la plus forte, écrit le titre et formule les recherches B-roll en anglais (« octopus squeezing through gap »). Sans clé, une sélection heuristique est utilisée : accroche, chute, densité de mots visuels, exclusion des intros et outros.
+**Optionnel, Claude :** avec `export ANTHROPIC_API_KEY=...`, Claude choisit l'histoire la plus forte, écrit le titre et formule des recherches B-roll plus précises.
 
 ## Ce que vous recevez (dans `outbox/<nom>/`)
 
@@ -80,7 +99,7 @@ Sans aucune source, le Short reste monté (punch-ins, sous-titres, rythme), mais
 | `<nom>_short1.srt` | Sous-titres (pour les traductions et l'accessibilité) |
 | `<nom>_short1_report.md` / `_qc.json` | Contrôle qualité : durée, coupes/min, part de B-roll, position des sous-titres, loudness, true peak |
 | `<nom>_short1_edl.json` | Le plan de montage complet, plan par plan, pour retoucher à la main si besoin |
-| `<nom>_short1_credits.txt` | Crédits des B-roll téléchargés |
+| `<nom>_short1_credits.txt` | Crédits et licences de chaque B-roll, prêts à coller dans la description |
 
 ## Réglages
 
@@ -106,6 +125,13 @@ Les options de la ligne de commande sont prioritaires sur le fichier. `python -m
   Aperçu : [`demo/autoedit_example_short.mp4`](demo/autoedit_example_short.mp4).
 - **Mode montage :** QC PASS sur 30 s de rushes sans parole.
 - **Mode surveillé :** une vidéo déposée dans `inbox/` est traitée puis déplacée dans `inbox/_done/`.
+
+### Test réel sur une vidéo fournie (14,6 s, « Why Fahrenheit makes more sense than Celsius »)
+
+Source Openverse, vision CLIP active, aucune intervention.
+- **QC PASS :** 59 % de B-roll, 50 coupes/min, −14,0 LUFS.
+- **Plans choisis :** verre d'eau sur « glass of water », mer sur « sea level », affichage de température sur « temperature outside », balles sur « balls », homme en sueur de dos sur « sweaty outside », short sur « shorts », talc Johnson's sur « baby powder », derrière de babouin sur « monkey butt ».
+- **Plateformes non testables ici :** YouTube et Wikimedia bloquent l'IP partagée du serveur cloud (anti-bot / 429) ; les deux fonctionnent depuis une connexion normale.
 
 ## Limites
 

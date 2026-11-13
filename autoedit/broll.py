@@ -166,32 +166,85 @@ def internal_cutaways(src: Path, scene_list: list[dict], clip_start: float, clip
     return pool
 
 
-def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, clip, needed: int):
-    """Map word index → list of assets. Also returns a generic pool and credits."""
-    providers = []
-    if cfg.broll_dirs:
-        providers.append(LocalLibrary(cfg.broll_dirs))
-    if cfg.online_broll and cfg.pexels_key:
-        providers.append(Pexels(cfg.pexels_key, cache))
-    if cfg.online_broll and cfg.pixabay_key:
-        providers.append(Pixabay(cfg.pixabay_key, cache))
-    found, by_query = {}, {}
-    order = sorted(queries.items(), key=lambda kv: (kv[0] not in clip.get("priority", []), kv[0]))
-    for idx, q in order:
-        if len(found) >= needed:
-            break
-        if q in by_query:
-            if by_query[q]:
-                found[idx] = by_query[q]
+def _verify_local(assets: list[dict], query: str) -> list[dict]:
+    """CLIP check of downloaded stock clips: keep only those that show the query, cued to the right second."""
+    from . import vision
+    out = []
+    for a in assets:
+        try:
+            dur = probe(Path(a["path"]))["duration"]
+        except Exception:
             continue
-        assets = []
-        for p in providers:
-            assets = p.find(q, limit=2)
-            if assets:
-                break
-        by_query[q] = assets
-        if assets:
-            found[idx] = assets
+        m = vision.best_moment(a["path"], dur, query, samples=8)
+        if m:
+            out.append({**a, "in": max(0.0, m["t"] - 0.3), "dur": dur, "match": round(m["prob"], 3)})
+    return out
+
+
+def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, clip, needed: int):
+    """Map word index → list of assets (best first). Sources are tried in `cfg.broll_sources` order:
+    library / your links (searched visually with CLIP when available) → Pexels → Pixabay → Wikimedia →
+    YouTube Creative Commons → Internet Archive. Also returns a pool of internal cutaways."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from . import social, vision
+    social.set_cache(cache)
+    use_vision = cfg.vision != "off" and vision.available()
+    if cfg.vision == "on" and not use_vision:
+        log("⚠ vision requested but torch/transformers are not installed: pip install -r requirements-vision.txt")
+    sources = list(cfg.broll_sources)
+    lib = LocalLibrary(cfg.broll_dirs) if cfg.broll_dirs and "library" in sources else None
+    url_clips = social.fetch_urls(social.read_url_list(cfg.broll_urls), cache) if cfg.broll_urls and "urls" in sources else []
+    index = None
+    if use_vision and ((lib and lib.items) or url_clips):
+        files = [{k: v for k, v in it.items() if k != "tokens"} for it in (lib.items if lib else [])] + url_clips
+        index = vision.VisualIndex(files, cache / "vision")
+    remote = []
+    for name in sources:
+        if not cfg.online_broll:
+            break
+        if name == "pexels" and cfg.pexels_key:
+            remote.append(("pexels", Pexels(cfg.pexels_key, cache)))
+        elif name == "pixabay" and cfg.pixabay_key:
+            remote.append(("pixabay", Pixabay(cfg.pixabay_key, cache)))
+        elif name in ("wikimedia", "youtube_cc", "archive", "openverse") and use_vision:   # needs the visual check
+            cls = {"wikimedia": social.Wikimedia, "youtube_cc": social.YouTubeCC, "archive": social.InternetArchive,
+                   "openverse": social.Openverse}[name]
+            remote.append((name, cls(cache)))
+    if remote:
+        log("b-roll sources: " + " → ".join(["library/links" if (lib or url_clips) else ""] * bool(lib or url_clips)
+                                             + [n for n, _ in remote]))
+
+    def lookup(q: str) -> list[dict]:
+        if index:
+            r = index.search(q, top=2)
+            if r:
+                return r
+        elif lib:
+            r = lib.find(q, limit=2)
+            if r:
+                return r
+        for name, prov in remote:
+            try:
+                r = prov.find(q, limit=2 if name in ("pexels", "pixabay") else 1)
+            except Exception as e:  # a provider failing must never stop the edit
+                log(f"{name}: '{q}' error ({type(e).__name__})")
+                continue
+            if r and use_vision and name in ("pexels", "pixabay"):
+                r = _verify_local(r, q)
+            if r:
+                return r
+        return []
+
+    order = sorted(queries.items(), key=lambda kv: (kv[0] not in clip.get("priority", []), kv[0]))
+    uniq = []
+    for _, q in order:
+        if q not in uniq:
+            uniq.append(q)
+    uniq = uniq[: max(needed, 1)]
+    with ThreadPoolExecutor(max_workers=3 if remote else 1) as ex:
+        by_query = dict(zip(uniq, ex.map(lookup, uniq)))
+    found = {idx: by_query[q] for idx, q in order if by_query.get(q)}
     for lst in found.values():
         for a in lst:
             if a["kind"] == "video" and "dur" not in a:
@@ -199,6 +252,7 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
                     a["dur"] = probe(Path(a["path"]))["duration"]
                 except Exception:
                     a["dur"] = 0
+    hits = sum(1 for q in uniq if by_query.get(q))
     generic = internal_cutaways(src, scene_list, clip["start"], clip["end"]) if scene_list else []
-    log(f"b-roll: {len(found)} keyword(s) matched, {len(generic)} internal cutaway(s)")
+    log(f"b-roll: {hits}/{len(uniq)} keyword(s) illustrated, {len(generic)} internal cutaway(s)")
     return found, generic
