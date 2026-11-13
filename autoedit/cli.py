@@ -41,6 +41,8 @@ def build_cfg(a) -> Config:
         cfg.broll_sources = [x.strip() for x in a.sources.split(",") if x.strip()]
     if a.vision:
         cfg.vision = a.vision
+    if a.no_photos:
+        cfg.photo_fallback = False
     if a.offline:
         cfg.online_broll = False
     if a.text:
@@ -86,6 +88,7 @@ def main(argv=None):
     ap.add_argument("--sources", help="B-roll source order, comma separated "
                     "(library,urls,pexels,pixabay,wikimedia,youtube_cc,archive)")
     ap.add_argument("--vision", choices=["auto", "on", "off"], help="CLIP visual check of B-roll (auto = if installed)")
+    ap.add_argument("--no-photos", action="store_true", help="video B-roll only: never fall back to a photo")
     ap.add_argument("--brand", help="watermark text locked under the captions")
     ap.add_argument("--count", type=int, help="number of Shorts to cut from each input (default 1)")
     ap.add_argument("--min-dur", type=float, dest="min_dur")

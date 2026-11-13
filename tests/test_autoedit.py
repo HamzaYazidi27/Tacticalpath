@@ -204,7 +204,31 @@ class TestVideoBrollRules(unittest.TestCase):
         self.assertTrue(y.disabled)
         self.assertEqual(y.find("anything"), [])   # no network call once paused
 
-    def test_video_only_default(self):
+    def test_video_first_photo_fallback_default(self):
         cfg = Config()
-        self.assertFalse(cfg.allow_photos)
+        self.assertTrue(cfg.photo_fallback)
         self.assertEqual(cfg.broll_sources[:3], ["library", "urls", "youtube_cc"])
+
+
+class TestPhotoFallback(unittest.TestCase):
+    def _run(self, video_hits, photo_hits, fallback=True):
+        from autoedit import social, vision
+        cfg = Config(vision="on", broll_sources=["mixkit", "openverse"], photo_fallback=fallback)
+        clip = {"start": 0, "end": 10, "priority": []}
+        with mock.patch.object(vision, "available", return_value=True), \
+             mock.patch.object(social.Mixkit, "find", side_effect=lambda q, limit=1, verify=None: list(video_hits.get(q, []))), \
+             mock.patch.object(social.Openverse, "find", side_effect=lambda q, limit=1, verify=None: list(photo_hits.get(q, []))):
+            found, _ = broll.resolve({1: "glass of water", 5: "baby powder"}, cfg, Path("/tmp/_ae_test_cache"),
+                                     Path("/x.mp4"), [], clip, needed=5)
+        return found
+
+    def test_video_first_then_photo(self):
+        v = {"glass of water": [{"path": "/v.mp4", "kind": "video", "dur": 5, "in": 0.3, "max_len": 3}]}
+        p = {"glass of water": [{"path": "/p1.jpg", "kind": "image"}], "baby powder": [{"path": "/p2.jpg", "kind": "image"}]}
+        found = self._run(v, p)
+        self.assertEqual(found[1][0]["kind"], "video")     # a video exists → the photo is never used
+        self.assertEqual(found[5][0]["kind"], "image")     # no video → real photo fallback
+
+    def test_no_photos_flag(self):
+        p = {"baby powder": [{"path": "/p2.jpg", "kind": "image"}]}
+        self.assertNotIn(5, self._run({}, p, fallback=False))

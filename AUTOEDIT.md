@@ -58,7 +58,9 @@ Le `|` indique où la marque change de couleur : `WILD` en blanc, `FRAME` en ver
 
 ## B-roll réel en VIDÉO, qui montre exactement ce qui est dit
 
-Par défaut, le B-roll est **uniquement en vidéo** ; les photos n'arrivent que sur demande (`"allow_photos": true`). Pour chaque mot ou expression (« glass of water », « baby powder »…), le système essaie ces sources dans l'ordre (modifiable avec `--sources`) :
+**La vidéo d'abord, la photo en secours.** Pour chaque mot ou expression (« glass of water », « baby powder »…), le système cherche d'abord **une vidéo** qui le montre, dans les sources ci-dessous (ordre modifiable avec `--sources`).
+
+Seulement si aucune vidéo ne le montre vraiment, il prend **une vraie photo** : d'abord dans votre dossier, puis sur Openverse (CC0, CC BY). Elle est animée par un zoom lent fluide. Pour n'avoir que des vidéos : `--no-photos`.
 
 | Ordre | Source | Contenu | Licence |
 |---|---|---|---|
@@ -68,7 +70,8 @@ Par défaut, le B-roll est **uniquement en vidéo** ; les photos n'arrivent que 
 | 4 | `pexels`, `pixabay` (clé gratuite) | Vidéos stock réelles | Licence Pexels / Pixabay |
 | 5 | `mixkit` (sans clé) | Vidéos stock réelles en HD | Mixkit Free License |
 | 6 | `wikimedia` | Vidéos de Wikimedia Commons | CC0, domaine public, CC BY |
-| option | `openverse` (photos), `archive` | Photos réelles / films anciens | CC0, PDM, CC BY |
+| secours | `openverse` | Vraies photos (Flickr, musées…), seulement si aucune vidéo n'a été trouvée | CC0, PDM, CC BY |
+| option | `archive` | Films anciens | Domaine public, CC BY |
 
 **Pourquoi pas « n'importe quelle vidéo YouTube ou TikTok » :** un extrait court n'est pas protégé. Content ID détecte des extraits de 1 à 2 secondes, et c'est la cause des strikes et des démonétisations sur les chaînes qui le font. TikTok n'a pas de licence de réutilisation : utilisez vos liens, avec l'accord du créateur.
 

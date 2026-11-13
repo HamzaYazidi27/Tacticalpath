@@ -54,7 +54,7 @@ class Config:
     # social video first: your own links (YouTube/TikTok…), then YouTube Creative Commons, then stock video.
     broll_sources: list = field(default_factory=lambda: ["library", "urls", "youtube_cc", "pexels", "pixabay",
                                                          "mixkit", "wikimedia", "openverse"])   # + "archive" on request
-    allow_photos: bool = False                        # B-roll is VIDEO only unless this is true
+    photo_fallback: bool = True                       # video first; a real photo only when no video shows the word
     broll_urls: list = field(default_factory=list)   # links (or .txt files of links) to footage you may reuse
     vision: str = "auto"                              # auto | on | off — CLIP check that B-roll shows the word
     # --- montage mode (no speech)

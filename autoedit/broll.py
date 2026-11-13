@@ -194,48 +194,42 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
         log("⚠ vision requested but torch/transformers are not installed: pip install -r requirements-vision.txt")
     sources = list(cfg.broll_sources)
     lib = LocalLibrary(cfg.broll_dirs) if cfg.broll_dirs and "library" in sources else None
-    if lib and not cfg.allow_photos:
-        lib.items = [it for it in lib.items if it["kind"] == "video"]          # video-only B-roll
     url_clips = social.fetch_urls(social.read_url_list(cfg.broll_urls), cache) if cfg.broll_urls and "urls" in sources else []
-    index = None
-    if use_vision and ((lib and lib.items) or url_clips):
-        files = [{k: v for k, v in it.items() if k != "tokens"} for it in (lib.items if lib else [])] + url_clips
-        index = vision.VisualIndex(files, cache / "vision")
-    remote = []
+    lib_items = [{k: v for k, v in it.items() if k != "tokens"} for it in (lib.items if lib else [])]
+    lib_videos = [it for it in lib_items if it["kind"] == "video"] + url_clips
+    lib_images = [it for it in lib_items if it["kind"] == "image"]
+    vid_index = vision.VisualIndex(lib_videos, cache / "vision") if use_vision and lib_videos else None
+    img_index = (vision.VisualIndex(lib_images, cache / "vision")
+                 if use_vision and lib_images and cfg.photo_fallback else None)
+    video_remote, photo_remote = [], []
     for name in sources:
         if not cfg.online_broll:
             break
         if name == "pexels" and cfg.pexels_key:
-            remote.append(("pexels", Pexels(cfg.pexels_key, cache)))
+            video_remote.append(("pexels", Pexels(cfg.pexels_key, cache)))
         elif name == "pixabay" and cfg.pixabay_key:
-            remote.append(("pixabay", Pixabay(cfg.pixabay_key, cache)))
-        elif name == "openverse" and not cfg.allow_photos:
-            continue                                                             # photos only on request
-        elif name in ("wikimedia", "youtube_cc", "archive", "openverse", "mixkit") and use_vision:  # visual check
+            video_remote.append(("pixabay", Pixabay(cfg.pixabay_key, cache)))
+        elif name == "openverse" and use_vision and cfg.photo_fallback:
+            photo_remote.append(("openverse", social.Openverse(cache)))
+        elif name in ("wikimedia", "youtube_cc", "archive", "mixkit") and use_vision:   # needs the visual check
             cls = {"wikimedia": social.Wikimedia, "youtube_cc": social.YouTubeCC, "archive": social.InternetArchive,
-                   "openverse": social.Openverse, "mixkit": social.Mixkit}[name]
-            remote.append((name, cls(cache)))
-    if remote:
-        log("b-roll sources: " + " → ".join(["library/links" if (lib or url_clips) else ""] * bool(lib or url_clips)
-                                             + [n for n, _ in remote]))
+                   "mixkit": social.Mixkit}[name]
+            video_remote.append((name, cls(cache)))
+    log("b-roll: videos from " + (" → ".join((["library/links"] if lib_videos else []) + [n for n, _ in video_remote])
+                                  or "nothing") +
+        (" ; photo fallback from " + " → ".join((["library"] if lib_images else []) + [n for n, _ in photo_remote])
+         if cfg.photo_fallback else " ; no photo fallback"))
 
-    def lookup(q: str) -> list[dict]:
-        r = _lookup(q)
-        if not r:                                   # "baby powder" → also search "powder", still verified as "baby powder"
-            head = q.split(" of ")[0].split()[-1] if " of " in q else q.split()[-1]
-            if head != q and len(head) >= 3:
-                r = [dict(a, query=q) for a in _lookup(head, verify_as=q)]
-        if not cfg.allow_photos:
-            r = [a for a in r if a.get("kind") == "video"]
-        return r
+    def head_of(q: str) -> str:
+        return q.split(" of ")[0].split()[-1] if " of " in q else q.split()[-1]
 
-    def _lookup(q: str, verify_as: str | None = None) -> list[dict]:
+    def search(q, verify_as, index, plain_lib_kind, remote):
         if index and not verify_as:
             r = index.search(q, top=2)
             if r:
                 return r
-        elif lib and not index:
-            r = lib.find(q, limit=2)
+        elif lib and not index and not verify_as:
+            r = [a for a in lib.find(q, limit=4) if a["kind"] == plain_lib_kind][:2]
             if r:
                 return r
         for name, prov in remote:
@@ -250,6 +244,22 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
             if r:
                 return r
         return []
+
+    def stage(q, index, kind, remote):
+        r = search(q, None, index, kind, remote)
+        if not r:                       # "baby powder" → also search "powder", still verified as "baby powder"
+            h = head_of(q)
+            if h != q and len(h) >= 3:
+                r = [dict(a, query=q) for a in search(h, q, index, kind, remote)]
+        return [a for a in r if a.get("kind") == kind]
+
+    def lookup(q: str) -> list[dict]:
+        r = stage(q, vid_index, "video", video_remote)               # 1) a video that shows it
+        if not r and cfg.photo_fallback:
+            r = stage(q, img_index, "image", photo_remote)           # 2) else a real photo, smooth push-in
+            if r:
+                log(f"b-roll: '{q}' → photo (no matching video found)")
+        return r
 
     order = sorted(queries.items(), key=lambda kv: (kv[0] not in clip.get("priority", []), kv[0]))
     uniq = []
