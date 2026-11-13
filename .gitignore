@@ -12,3 +12,8 @@ outbox/
 .venv/
 autoedit.config.json
 reports/
+workspace/
+broll/*
+!broll/.gitkeep
+music/*
+!music/.gitkeep

@@ -181,6 +181,43 @@ def _verify_local(assets: list[dict], query: str) -> list[dict]:
     return out
 
 
+def candidates(query: str, cfg, cache: Path, photos: bool = False, per_source: int = 3, total: int = 9) -> list[dict]:
+    """Several verified candidates for one query, gathered across all enabled sources (for manual picking)."""
+    from . import social, vision
+    social.set_cache(cache)
+    if not vision.available():
+        return []
+    out = []
+    names = ["openverse"] if photos else [n for n in cfg.broll_sources if n not in ("openverse", "library", "urls")]
+    for name in names:
+        if len(out) >= total or not cfg.online_broll:
+            break
+        if name == "pexels" and cfg.pexels_key:
+            r = _verify_local(Pexels(cfg.pexels_key, cache).find(query, limit=per_source + 1), query)
+        elif name == "pixabay" and cfg.pixabay_key:
+            r = _verify_local(Pixabay(cfg.pixabay_key, cache).find(query, limit=per_source + 1), query)
+        elif name in ("wikimedia", "youtube_cc", "archive", "mixkit", "openverse"):
+            cls = {"wikimedia": social.Wikimedia, "youtube_cc": social.YouTubeCC, "archive": social.InternetArchive,
+                   "mixkit": social.Mixkit, "openverse": social.Openverse}[name]
+            prov = cls(cache)
+            if hasattr(prov, "candidates"):
+                prov.candidates = max(prov.candidates, per_source + 3)
+            try:
+                r = prov.find(query, limit=per_source)
+            except Exception as e:
+                log(f"{name}: '{query}' error ({type(e).__name__})")
+                r = []
+        else:
+            continue
+        out += r
+    if cfg.broll_dirs and not photos:                 # your own clips, searched visually
+        lib = LocalLibrary(cfg.broll_dirs)
+        vids = [{k: v for k, v in it.items() if k != "tokens"} for it in lib.items if it["kind"] == "video"]
+        if vids:
+            out = vision.VisualIndex(vids, cache / "vision").search(query, top=3) + out
+    return out[:total]
+
+
 def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, clip, needed: int):
     """Map word index → list of assets (best first). Sources are tried in `cfg.broll_sources` order:
     library / your links (searched visually with CLIP when available) → Pexels → Pixabay → Wikimedia →

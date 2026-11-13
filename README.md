@@ -5,7 +5,7 @@ A forensic reverse-engineering of the editing style of [youtube.com/@Tacticalpat
 ![Center-Punch caption, rendered by templates/captions/make_captions.py](demo/caption_style_preview.png)
 
 > **Nouveau : [`autoedit`](AUTOEDIT.md), monteur 100 % automatique.** Donnez une vidéo brute, recevez le Short monté dans ce style (sélection de l'histoire, coupes, B-roll, sous-titres, étalonnage, mixage, contrôle qualité) :
-> `python -m autoedit ma_video.mp4` ou `python -m autoedit --watch inbox --out outbox`. Guide en français : [AUTOEDIT.md](AUTOEDIT.md).
+> `python -m autoedit ma_video.mp4` ou `python -m autoedit --watch inbox --out outbox`. Guide en français : [AUTOEDIT.md](AUTOEDIT.md). **Interface web** : `start-studio.bat` (Windows) ou `./start-studio.sh`.
 
 ## What the channel actually is
 

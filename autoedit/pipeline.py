@@ -8,7 +8,7 @@ from pathlib import Path
 
 from . import analyze, broll, montage, planner, qc, render, selector
 from .transcribe import extract_wav, transcribe
-from .util import check_tools, log, probe, save_json
+from .util import check_tools, load_json, log, probe, save_json
 
 
 def _slug(name: str) -> str:
@@ -65,41 +65,72 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
 
     outputs = []
     for n, p in enumerate(plans, 1):
-        cw = work / f"clip{n}"
-        cw.mkdir(exist_ok=True)
+        p["source"], p["slug"], p["index"] = str(src), name, n          # makes the EDL re-renderable on its own
+        p["targets"] = {"min_dur": cfg.min_dur, "max_dur": cfg.max_dur}
+        if clips[n - 1]:
+            p["clip"]["source_range"] = [clips[n - 1]["start"], clips[n - 1]["end"]]
         save_json(out_dir / f"{name}_short{n}_edl.json", {k: v for k, v in p.items()})
         log(f"plan {n}: {p['stats']}")
         if dry_run:
             continue
-        if p.get("mode") == "montage":
-            video = render.render_video(p, src, cw)
-            audio = render.render_audio_montage(p, src, cw, cfg)
-        else:
-            aroll = render.cut_aroll(src, p["islands"], cw / "aroll.mp4", info)
-            video = render.render_video(p, aroll, cw)
-            audio = render.render_audio(p, aroll, cw, cfg)
-        ass = render.write_captions(p, cw, cfg)
-        final = out_dir / f"{name}_short{n}.mp4"
-        log("final grade + captions + encode…")
-        render.finish(video, audio, ass, final, cfg)
-        shutil.copy(cw / "captions.srt", out_dir / f"{name}_short{n}.srt")
-        first_b = next((s["t0"] for s in p["shots"] if s["kind"] == "B"), 1.0)
-        render.cover(final, first_b + 0.3, out_dir / f"{name}_short{n}_cover.jpg")
-        credits = sorted({s["asset"]["credit"] for s in p["shots"] if s["kind"] == "B" and s["asset"].get("credit")})
-        (out_dir / f"{name}_short{n}_credits.txt").write_text(
-            ("B-roll credits:\n" + "\n".join(credits) + "\n") if credits else "No third-party B-roll used.\n", encoding="utf-8")
-        report = qc.run(final, p, cfg)
-        save_json(out_dir / f"{name}_short{n}_qc.json", report)
-        md = qc.markdown(report, p, p.get("title", ""))
-        if clips[n - 1]:
-            md += f"\nSource range: {clips[n - 1]['start']:.1f}–{clips[n - 1]['end']:.1f} s · selection: {clips[n - 1]['source']}\n"
-        (out_dir / f"{name}_short{n}_report.md").write_text(md, encoding="utf-8")
-        log(f"✔ {final.name} — QC {'PASS' if report['pass'] else 'WARN'}")
-        for c in report["checks"]:
-            if not c["ok"]:
-                log(f"   ⚠ {c['check']}: {c['value']} (target {c['target']})")
-        outputs.append(final)
+        outputs.append(render_one(p, out_dir, cfg, info))
     if not keep_work and not dry_run:
         for d in work.glob("clip*/shots"):
             shutil.rmtree(d, ignore_errors=True)
     return outputs
+
+
+def render_one(p: dict, out_dir: Path, cfg, info: dict | None = None) -> Path:
+    """Render one EDL to its final Short + cover, captions, credits and QC report."""
+    src, name, n = Path(p["source"]), p["slug"], p["index"]
+    info = info or probe(src)
+    cw = out_dir / "_work" / f"clip{n}"
+    cw.mkdir(parents=True, exist_ok=True)
+    if p.get("mode") == "montage":
+        video = render.render_video(p, src, cw)
+        audio = render.render_audio_montage(p, src, cw, cfg)
+    else:
+        aroll = render.cut_aroll(src, p["islands"], cw / "aroll.mp4", info)
+        video = render.render_video(p, aroll, cw)
+        audio = render.render_audio(p, aroll, cw, cfg)
+    ass = render.write_captions(p, cw, cfg)
+    final = out_dir / f"{name}_short{n}.mp4"
+    log("final grade + captions + encode…")
+    tmp = final.with_suffix(".rendering.mp4")
+    render.finish(video, audio, ass, tmp, cfg)
+    tmp.replace(final)
+    shutil.copy(cw / "captions.srt", out_dir / f"{name}_short{n}.srt")
+    first_b = next((s["t0"] for s in p["shots"] if s["kind"] == "B"), 1.0)
+    render.cover(final, first_b + 0.3, out_dir / f"{name}_short{n}_cover.jpg")
+    credits = sorted({s["asset"]["credit"] for s in p["shots"] if s["kind"] == "B" and s["asset"].get("credit")})
+    (out_dir / f"{name}_short{n}_credits.txt").write_text(
+        ("B-roll credits:\n" + "\n".join(credits) + "\n") if credits else "No third-party B-roll used.\n", encoding="utf-8")
+    report = qc.run(final, p, cfg)
+    save_json(out_dir / f"{name}_short{n}_qc.json", report)
+    md = qc.markdown(report, p, p.get("title", ""))
+    rng = p.get("clip", {}).get("source_range")
+    if rng:
+        md += f"\nSource range: {rng[0]:.1f}–{rng[1]:.1f} s · selection: {p['clip'].get('source', '')}\n"
+    (out_dir / f"{name}_short{n}_report.md").write_text(md, encoding="utf-8")
+    log(f"✔ {final.name} — QC {'PASS' if report['pass'] else 'WARN'}")
+    for c in report["checks"]:
+        if not c["ok"]:
+            log(f"   ⚠ {c['check']}: {c['value']} (target {c['target']})")
+    shutil.rmtree(cw / "shots", ignore_errors=True)
+    return final
+
+
+def rerender(edl_path: Path, cfg) -> Path:
+    """Re-render an edited EDL (B-roll swapped, captions corrected…) without re-analysing the source."""
+    check_tools()
+    p = load_json(edl_path)
+    for k, v in (p.get("targets") or {}).items():
+        setattr(cfg, k, v)
+    p["stats"]["broll_share"] = round(sum(s["t1"] - s["t0"] for s in p["shots"] if s["kind"] == "B")
+                                      / max(p["duration"], 1e-6), 3)
+    p["stats"]["first_broll_at"] = next((s["t0"] for s in p["shots"] if s["kind"] == "B"), None)
+    p["stats"]["shots"] = len(p["shots"])
+    p["stats"]["cuts_per_min"] = round((len(p["shots"]) - 1) / p["duration"] * 60, 1) if p["duration"] else 0
+    save_json(edl_path, p)
+    log(f"re-render: {edl_path.name}")
+    return render_one(p, edl_path.parent, cfg)

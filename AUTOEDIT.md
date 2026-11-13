@@ -58,6 +58,24 @@ Ce qui est téléchargé une seule fois : la transcription Whisper `small` (~500
 - une clé Pexels gratuite (pexels.com/api) pour plus de vidéos B-roll : `export PEXELS_API_KEY=...` (Windows : `setx PEXELS_API_KEY "..."`) ;
 - des musiques libres de droits dans `music/`.
 
+## Interface web : autoedit Studio
+
+La façon la plus simple de travailler. Lancez-la :
+- **Windows :** double-clic sur `start-studio.bat`.
+- **Mac / Linux :** `./start-studio.sh`.
+
+Le navigateur s'ouvre sur **http://127.0.0.1:8765**. Tout reste sur votre ordinateur.
+
+| Page | Ce que vous y faites |
+|---|---|
+| **Nouveau montage** | Glisser-déposer vos vidéos, choisir la marque, la durée, le nombre de Shorts et les sources B-roll, puis lancer |
+| **Projets** | Suivre les montages en direct (étape, %, journal), annuler, et retrouver tous vos Shorts terminés |
+| **Éditeur de Short** | Voir le Short, la timeline des plans et le rapport qualité. Cliquer sur un plan pour : **remplacer le B-roll** (recherche, bibliothèque ou votre fichier), **le retirer**, **ajouter un B-roll** sur un plan speaker, **corriger un sous-titre**. Puis **Re-rendre** (~40 s, sans tout recommencer). Télécharger le MP4, le SRT, la couverture ; copier les crédits |
+| **Bibliothèque** | Ajouter ou supprimer vos clips B-roll (trouvés par ce qu'ils montrent) et vos musiques |
+| **Réglages** | Valeurs par défaut, ordre des sources, intensité du look, niveau de la musique, clés API (stockées sur cet ordinateur uniquement) |
+
+Les fichiers de travail sont dans `workspace/` : vos vidéos envoyées, les Shorts produits et les caches. Pour ouvrir le studio aux autres appareils de votre réseau : `start-studio --host 0.0.0.0`. Il n'a **pas de mot de passe** : ne le faites que sur un réseau de confiance.
+
 ## Utilisation
 
 **Une vidéo (Mac/Linux) :**

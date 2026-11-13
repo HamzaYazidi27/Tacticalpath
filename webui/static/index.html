@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autoedit Studio</title>
+<style>
+/* Layout concept: an edit bay. Fixed rail on the left, one working surface on the right.
+   Speaker shots are amber (timecode colour), B-roll is cool slate, captions keep the brand green. */
+@font-face{font-family:"Montserrat Black";src:url("/fonts/Montserrat-Black.otf") format("opentype");font-display:swap}
+:root{
+  color-scheme:dark;
+  --bg:#0c0f12; --rail:#090b0d; --panel:#13181d; --panel-2:#1a2027; --line:#252d35; --line-2:#323c46;
+  --ink:#e8edf1; --muted:#8f9ba7; --faint:#5f6b76;
+  --accent:#f0b24a; --accent-ink:#1c1406; --aroll:#e3a23a; --broll:#4f7fa3; --photo:#7f6bc4;
+  --cap:#19f464; --cap-shadow:#0a3d16; --ok:#4fd18b; --warn:#f0b24a; --bad:#ef6b6b;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Code",Menlo,Consolas,monospace;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 14px/1.5 var(--sans);display:grid;grid-template-columns:232px minmax(0,1fr)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3{margin:0;line-height:1.15;text-wrap:balance}
+h1{font-size:26px;font-weight:750;letter-spacing:-.01em}
+h2{font-size:17px;font-weight:700}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font:600 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* rail */
+nav{background:var(--rail);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:18px 12px;gap:4px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.logo .mark{width:28px;height:28px;border-radius:7px;background:var(--cap);box-shadow:0 3px 0 var(--cap-shadow);display:grid;place-items:center;color:#062b10;font:900 15px/1 "Montserrat Black",var(--sans)}
+.logo b{font-size:15px;letter-spacing:.01em}.logo span{display:block;font-size:11px;color:var(--muted)}
+nav a.item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-weight:550}
+nav a.item:hover{background:var(--panel)}
+nav a.item.on{background:var(--panel-2);box-shadow:inset 3px 0 0 var(--accent)}
+nav a.item svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;opacity:.85}
+.badge{margin-left:auto;background:var(--accent);color:var(--accent-ink);font:700 11px/1 var(--mono);padding:3px 6px;border-radius:20px}
+.health{margin-top:auto;display:grid;gap:6px;padding:12px 10px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+.health div{display:flex;align-items:center;gap:8px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+
+main{min-width:0;padding:28px 32px 80px;max-width:1320px}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.head p{margin:6px 0 0;color:var(--muted);max-width:70ch}
+
+/* generic pieces */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+.pad{padding:18px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:20px;align-items:start}
+.panel{align-content:start}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line-2);background:var(--panel-2);padding:8px 13px;border-radius:8px;cursor:pointer;font-weight:600;white-space:nowrap;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:5px 9px;font-size:12px;border-radius:7px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+label.f{display:grid;gap:6px;font-size:12px;color:var(--muted);font-weight:600}
+input[type=text],input[type=number],input[type=password],select,textarea{background:var(--bg);border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;width:100%}
+textarea{resize:vertical;min-height:110px;font-family:var(--mono);font-size:12px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;border:1px solid var(--line-2);cursor:pointer;font-size:12px;font-weight:600;user-select:none}
+.chip.on{background:rgba(240,178,74,.14);border-color:var(--accent);color:var(--accent)}
+.switch{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:550}
+.switch input{appearance:none;width:36px;height:20px;border-radius:20px;background:var(--line-2);position:relative;cursor:pointer;flex:none;margin:0}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--ink);transition:left .15s}
+.switch input:checked{background:var(--accent)}.switch input:checked::after{left:19px;background:var(--accent-ink)}
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 11px/1 var(--mono);padding:4px 7px;border-radius:5px;white-space:nowrap}
+.pill.A{background:rgba(227,162,58,.15);color:var(--aroll)}.pill.B{background:rgba(79,127,163,.2);color:#8fbbe0}
+.pill.P{background:rgba(127,107,196,.22);color:#b9a8f2}.pill.ok{background:rgba(79,209,139,.14);color:var(--ok)}
+.pill.warn{background:rgba(240,178,74,.14);color:var(--warn)}.pill.bad{background:rgba(239,107,107,.15);color:var(--bad)}
+.empty{padding:40px 20px;text-align:center;color:var(--muted);border:1px dashed var(--line-2);border-radius:var(--r)}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--panel-2);border:1px solid var(--line-2);border-left:3px solid var(--accent);padding:12px 16px;border-radius:8px;max-width:380px;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:50}
+.toast.err{border-left-color:var(--bad)}
+
+/* new edit */
+.drop{display:grid;justify-items:center;gap:2px;border:2px dashed var(--line-2);border-radius:14px;padding:44px 20px;text-align:center;cursor:pointer;transition:.15s;background:linear-gradient(180deg,rgba(25,244,100,.03),transparent)}
+.drop.hover{border-color:var(--cap);background:rgba(25,244,100,.06)}
+.drop strong{display:block;font-size:17px;margin:10px 0 4px}
+.drop svg{width:42px;height:42px;stroke:var(--cap);fill:none;stroke-width:1.6}
+.files{display:grid;gap:8px;margin-top:14px}
+.file{display:grid;grid-template-columns:minmax(0,1fr) 140px auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.file .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.bar{height:6px;border-radius:4px;background:var(--line);overflow:hidden}.bar i{display:block;height:100%;background:var(--cap);width:0;transition:width .3s}
+.sources{display:flex;flex-wrap:wrap;gap:8px}
+.hint{font-size:12px;color:var(--muted)}
+
+/* projects */
+.jobs{display:grid;gap:10px;margin-bottom:30px}
+.job{padding:14px 16px;display:grid;gap:10px}
+.job .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.job .top b{font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:46ch}
+.job .bar{height:8px}
+.job .bar i{background:var(--accent)}
+.job.done .bar i{background:var(--ok)}.job.failed .bar i{background:var(--bad)}
+.log{background:#07090b;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font:12px/1.55 var(--mono);color:#b9c3cc;max-height:220px;overflow:auto;white-space:pre-wrap}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:16px}
+.card{display:grid;gap:8px;text-decoration:none;color:var(--ink)}
+.card .cov{aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:var(--panel-2);border:1px solid var(--line);position:relative}
+.card .cov img{width:100%;height:100%;object-fit:cover;display:block}
+.card .cov .q{position:absolute;top:8px;left:8px;background:rgba(6,8,10,.82);backdrop-filter:blur(4px)}
+.card:hover .cov{border-color:var(--accent)}
+.card b{font-size:13px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card span{font-size:12px;color:var(--muted)}
+
+/* editor */
+.editor{display:grid;grid-template-columns:330px minmax(0,1fr);gap:22px;align-items:start}
+.player{position:sticky;top:20px;display:grid;gap:12px}
+.phone{background:#000;border-radius:22px;padding:7px;border:1px solid var(--line-2);box-shadow:0 24px 60px -24px rgba(0,0,0,.7)}
+.phone video{width:100%;aspect-ratio:9/16;border-radius:16px;background:#000;display:block}
+.phone .ph{aspect-ratio:9/16;border-radius:16px;display:grid;place-items:center;color:var(--muted);text-align:center;padding:20px}
+.downloads{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dirty{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:10px;background:rgba(240,178,74,.1);border:1px solid rgba(240,178,74,.45);margin-bottom:14px;flex-wrap:wrap}
+.dirty.run{background:rgba(79,127,163,.12);border-color:rgba(79,127,163,.5)}
+.timeline{position:relative;height:40px;border-radius:8px;overflow:hidden;display:flex;cursor:pointer;background:var(--line);margin:4px 0 6px}
+.timeline .seg{height:100%;border-right:2px solid var(--bg);position:relative}
+.timeline .seg.A{background:var(--aroll)}.timeline .seg.B{background:var(--broll)}.timeline .seg.P{background:var(--photo)}
+.timeline .seg.sel{box-shadow:inset 0 0 0 2px #fff}
+.timeline .head{position:absolute;top:0;bottom:0;width:2px;background:#fff;left:0;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin:16px 0 14px}
+.tabs button{background:none;border:0;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:650;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.shots{display:grid;gap:8px}
+.shot{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:14px;align-items:center;padding:8px 10px 8px 8px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+.shot.sel{border-color:var(--accent)}
+.shot .th{width:62px;aspect-ratio:9/16;border-radius:6px;background:var(--panel-2);overflow:hidden;cursor:pointer}
+.shot .th img{width:100%;height:100%;object-fit:cover;display:block}
+.shot .mid{min-width:0;display:grid;gap:4px}
+.shot .mid .t{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.shot .mid .w{font-weight:700}
+.shot .mid .c{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shot .act{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.caps{display:grid;gap:8px}
+.cap{display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:12px;align-items:center;padding:6px 8px;border-radius:8px;border:1px solid transparent}
+.cap:hover{border-color:var(--line)}
+.cap.now{border-color:var(--accent);background:rgba(240,178,74,.06)}
+.cap input{font:900 15px/1.2 "Montserrat Black",var(--sans);text-transform:uppercase;color:var(--cap);text-shadow:0 2px 0 var(--cap-shadow);background:#0a0d10;letter-spacing:.01em}
+.qc{width:100%;border-collapse:collapse;font-size:13px}
+.qc td,.qc th{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left}
+.qc th{font:600 11px/1 var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:30}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(640px,100vw);background:var(--panel);border-left:1px solid var(--line-2);z-index:31;display:flex;flex-direction:column}
+.drawer header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+.drawer .body{padding:16px 20px;overflow:auto;flex:1;display:grid;gap:14px;align-content:start}
+.results{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.res{display:grid;gap:6px;border:1px solid var(--line);border-radius:10px;padding:6px;background:var(--bg)}
+.res .im{aspect-ratio:9/16;border-radius:6px;overflow:hidden;background:var(--panel-2)}
+.res .im img,.res .im video{width:100%;height:100%;object-fit:cover;display:block}
+.res small{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.spinner{width:16px;height:16px;border-radius:50%;border:2px solid var(--line-2);border-top-color:var(--accent);animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* library */
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.lib .res .im{aspect-ratio:16/10}
+.tracks{display:grid;gap:8px}
+.track{display:grid;grid-template-columns:minmax(0,1fr) 300px auto;gap:12px;align-items:center;padding:8px 12px;border:1px solid var(--line);border-radius:8px}
+.track audio{width:100%;height:32px}
+
+@media (max-width:1100px){.editor{grid-template-columns:minmax(0,1fr)}.player{position:static;max-width:340px}.grid2{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){body{grid-template-columns:minmax(0,1fr)}nav{position:static;height:auto;flex-direction:row;flex-wrap:wrap}.health,.logo span{display:none}main{padding:18px 16px 60px}.fields{grid-template-columns:minmax(0,1fr)}.track{grid-template-columns:minmax(0,1fr)}.file{grid-template-columns:minmax(0,1fr) auto}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><div class="mark">a</div><div><b>autoedit Studio</b><span>Center-Punch Shorts</span></div></div>
+  <a class="item" href="#new" data-nav="new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Nouveau montage</a>
+  <a class="item" href="#projects" data-nav="projects"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 4v16M17 4v16"/></svg>Projets<span class="badge" id="runBadge" hidden>0</span></a>
+  <a class="item" href="#library" data-nav="library"><svg viewBox="0 0 24 24"><path d="M4 5h6v14H4zM14 5h6v14h-6z"/></svg>Bibliothèque</a>
+  <a class="item" href="#settings" data-nav="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Réglages</a>
+  <div class="health" id="health"><div><span class="dot"></span>Vérification…</div></div>
+</nav>
+<main id="view"></main>
+
+<script>
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtT = t => { t = Math.max(0, t || 0); const m = Math.floor(t / 60); return `${m}:${(t - m * 60).toFixed(1).padStart(4, "0")}`; };
+const fmtMB = b => (b / 1048576).toFixed(b > 104857600 ? 0 : 1) + " Mo";
+async function api(url, opt = {}) {
+  const r = await fetch(url, {headers: opt.body && !(opt.body instanceof FormData) ? {"Content-Type": "application/json"} : {}, ...opt});
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || `Erreur ${r.status}`);
+  return d;
+}
+function toast(msg, err = false) {
+  const t = document.createElement("div"); t.className = "toast" + (err ? " err" : ""); t.textContent = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), err ? 6000 : 3200);
+}
+const SOURCES = [["library","Ma bibliothèque"],["urls","Mes liens"],["youtube_cc","YouTube CC"],["pexels","Pexels"],["pixabay","Pixabay"],["mixkit","Mixkit"],["wikimedia","Wikimedia"],["openverse","Openverse (photos)"],["archive","Internet Archive"]];
+let SETTINGS = null, timer = null;
+
+/* ---------------- router ---------------- */
+const routes = {new: viewNew, projects: viewProjects, library: viewLibrary, settings: viewSettings, short: viewShort};
+function route() {
+  clearInterval(timer); timer = null;
+  const [page, ...rest] = (location.hash.slice(1) || "new").split("/");
+  $$("nav a.item").forEach(a => a.classList.toggle("on", a.dataset.nav === (page === "short" ? "projects" : page)));
+  (routes[page] || viewNew)(...rest);
+}
+window.addEventListener("hashchange", route);
+
+/* ---------------- health + badge ---------------- */
+async function health() {
+  try {
+    const h = await api("/api/health");
+    $("#health").innerHTML = [["ffmpeg", h.ffmpeg, "ffmpeg"], ["vision", h.vision, "Vision CLIP"], ["js", h.deno_or_node, "deno / node (YouTube)"]]
+      .map(([k, ok, l]) => `<div><span class="dot ${ok ? "ok" : "bad"}"></span>${l}</div>`).join("");
+    const b = $("#runBadge"); b.hidden = !h.queue; b.textContent = h.queue;
+  } catch (e) { $("#health").innerHTML = `<div><span class="dot bad"></span>Serveur injoignable</div>`; }
+}
+setInterval(health, 4000); health();
+
+/* ---------------- NEW ---------------- */
+let pending = [];   // uploaded files waiting for launch
+async function viewNew() {
+  SETTINGS = SETTINGS || await api("/api/settings").catch(() => null);
+  const c = SETTINGS?.config || {};
+  const srcOn = new Set(c.broll_sources || ["library","urls","youtube_cc","pexels","pixabay","mixkit","wikimedia","openverse"]);
+  $("#view").innerHTML = `
+  <div class="head"><div><div class="eyebrow">Nouveau montage</div><h1>Déposez vos vidéos brutes</h1>
+    <p>Podcast, interview, face caméra ou rushes : le système choisit le meilleur passage, monte, sous-titre, étalonne et mixe. Vous pourrez retoucher chaque plan ensuite.</p></div></div>
+  <div class="grid2">
+    <div>
+      <label class="drop panel" id="drop">
+        <svg viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+        <strong>Glissez vos vidéos ici</strong><span class="muted">ou cliquez pour choisir · MP4, MOV, MKV, WEBM</span>
+        <input type="file" id="pick" accept="video/*" multiple hidden>
+      </label>
+      <div class="files" id="files"></div>
+    </div>
+    <div class="panel pad" style="display:grid;gap:16px">
+      <h2>Options</h2>
+      <div class="fields">
+        <label class="f">Marque (filigrane)<input type="text" id="o_brand" placeholder="WILD|FRAME" value="${esc(c.brand || "")}"></label>
+        <label class="f">Nombre de Shorts par vidéo<input type="number" id="o_count" min="1" max="6" value="${c.count || 1}"></label>
+        <label class="f">Durée min. (s)<input type="number" id="o_min" min="5" max="180" value="${c.min_dur || 30}"></label>
+        <label class="f">Durée max. (s)<input type="number" id="o_max" min="10" max="180" value="${c.max_dur || 60}"></label>
+        <label class="f">Langue parlée<select id="o_lang"><option value="">Détection auto</option><option value="en">Anglais</option><option value="fr">Français</option><option value="es">Espagnol</option><option value="ar">Arabe</option></select></label>
+        <label class="f">Précision transcription<select id="o_model"><option value="small">Normale (rapide)</option><option value="medium">Haute (plus lent)</option></select></label>
+      </div>
+      <div style="display:grid;gap:8px"><span class="eyebrow">Sources B-roll (vidéo d'abord)</span>
+        <div class="sources" id="o_src">${SOURCES.map(([k, l]) => `<span class="chip ${srcOn.has(k) ? "on" : ""}" data-k="${k}">${l}</span>`).join("")}</div>
+        <span class="hint">Pexels / Pixabay : ajoutez la clé dans Réglages. YouTube CC : vidéos dont le créateur autorise la réutilisation.</span></div>
+      <label class="switch"><input type="checkbox" id="o_photos" ${c.photo_fallback !== false ? "checked" : ""}>Photo de secours si aucune vidéo ne montre le mot</label>
+      <label class="f">Texte à afficher (vidéos sans parole uniquement)<input type="text" id="o_text" placeholder="Optionnel"></label>
+      <button class="btn primary" id="go" disabled>Lancer le montage</button>
+    </div>
+  </div>`;
+  const drop = $("#drop"), pick = $("#pick");
+  $$("#o_src .chip").forEach(ch => ch.onclick = () => ch.classList.toggle("on"));
+  ["dragenter", "dragover"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("hover"); }));
+  ["dragleave", "drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("hover"); }));
+  drop.addEventListener("drop", ev => uploadFiles([...ev.dataTransfer.files]));
+  pick.onchange = () => uploadFiles([...pick.files]);
+  renderPending();
+  $("#go").onclick = launch;
+}
+function renderPending() {
+  const box = $("#files"); if (!box) return;
+  box.innerHTML = pending.map((f, i) => `<div class="file"><span class="name" title="${esc(f.name)}">${esc(f.name)}</span>
+    <div class="bar"><i style="width:${f.progress}%"></i></div>
+    <span class="mono muted">${f.file_id ? "prêt" : f.error ? "erreur" : f.progress + " %"}</span></div>`).join("");
+  const go = $("#go"); if (go) go.disabled = !pending.some(f => f.file_id);
+}
+function uploadFiles(list) {
+  list.forEach(file => {
+    const entry = {name: file.name, progress: 0}; pending.push(entry); renderPending();
+    const fd = new FormData(); fd.append("files", file);
+    const x = new XMLHttpRequest(); x.open("POST", "/api/upload");
+    x.upload.onprogress = e => { if (e.lengthComputable) { entry.progress = Math.round(e.loaded / e.total * 100); renderPending(); } };
+    x.onload = () => { try { const d = JSON.parse(x.responseText); if (x.status >= 400) throw new Error(d.error); entry.file_id = d[0].file_id; entry.progress = 100; } catch (e) { entry.error = true; toast(e.message || "Envoi impossible", true); } renderPending(); };
+    x.onerror = () => { entry.error = true; renderPending(); toast("Envoi interrompu", true); };
+    x.send(fd);
+  });
+}
+async function launch() {
+  const options = {brand: $("#o_brand").value.trim(), count: +$("#o_count").value, min_dur: +$("#o_min").value, max_dur: +$("#o_max").value,
+    language: $("#o_lang").value, whisper_model: $("#o_model").value, text: $("#o_text").value.trim(),
+    sources: $$("#o_src .chip.on").map(c => c.dataset.k), photos: $("#o_photos").checked};
+  if (options.min_dur >= options.max_dur) return toast("La durée min. doit être inférieure à la durée max.", true);
+  const ready = pending.filter(f => f.file_id);
+  for (const f of ready) await api("/api/jobs", {method: "POST", body: JSON.stringify({file_id: f.file_id, name: f.name, options})});
+  pending = pending.filter(f => !f.file_id);
+  toast(`${ready.length} montage(s) lancé(s)`); location.hash = "#projects";
+}
+
+/* ---------------- PROJECTS ---------------- */
+const openLogs = new Set();
+async function viewProjects() {
+  $("#view").innerHTML = `<div class="head"><div><div class="eyebrow">Projets</div><h1>Montages et Shorts</h1>
+    <p>Les montages passent un par un (ils utilisent tout le processeur). Cliquez sur un Short pour le retoucher.</p></div>
+    <a class="btn primary" href="#new">Nouveau montage</a></div>
+    <div class="jobs" id="jobs"></div><h2 style="margin:6px 0 14px">Shorts terminés</h2><div id="gallery"></div>`;
+  await refreshProjects(); timer = setInterval(refreshProjects, 1500);
+}
+async function refreshProjects() {
+  const [jobs, shorts] = await Promise.all([api("/api/jobs"), api("/api/shorts")]).catch(() => [[], []]);
+  const active = jobs.filter(j => ["queued", "running"].includes(j.status) || (Date.now() / 1000 - (j.finished || 0) < 600 && j.status !== "done"));
+  const box = $("#jobs"); if (!box) return;
+  const logs = {};
+  for (const j of active) if (openLogs.has(j.id)) logs[j.id] = (await api(`/api/jobs/${j.id}`).catch(() => ({}))).log || [];
+  box.innerHTML = active.length ? active.map(j => {
+    const el = j.started ? (j.finished || Date.now() / 1000) - j.started : 0;
+    const st = {queued: `En attente${j.queue_pos ? ` (${j.queue_pos} avant)` : ""}`, running: j.stage, failed: "Échec", cancelled: "Annulé"}[j.status] || j.stage;
+    return `<div class="panel job ${j.status}"><div class="top"><b title="${esc(j.title)}">${esc(j.title)}</b>
+      <span class="pill ${j.status === "failed" ? "bad" : j.status === "running" ? "warn" : ""}">${esc(st)}</span>
+      <span class="mono muted">${j.progress || 0} % · ${fmtT(el)}</span><span style="flex:1"></span>
+      <button class="btn sm ghost" data-log="${j.id}">${openLogs.has(j.id) ? "Masquer" : "Journal"}</button>
+      ${["queued", "running"].includes(j.status) ? `<button class="btn sm danger" data-cancel="${j.id}">Annuler</button>` : `<button class="btn sm ghost" data-del="${j.id}">Retirer</button>`}</div>
+      <div class="bar"><i style="width:${j.progress || 0}%"></i></div>
+      ${j.error ? `<div class="hint" style="color:var(--bad)">${esc(j.error)}</div>` : ""}
+      ${openLogs.has(j.id) ? `<div class="log">${esc((logs[j.id] || []).join("\n"))}</div>` : ""}</div>`;
+  }).join("") : "";
+  $$("[data-log]").forEach(b => b.onclick = () => { openLogs.has(b.dataset.log) ? openLogs.delete(b.dataset.log) : openLogs.add(b.dataset.log); refreshProjects(); });
+  $$("[data-cancel]").forEach(b => b.onclick = async () => { await api(`/api/jobs/${b.dataset.cancel}/cancel`, {method: "POST"}); refreshProjects(); });
+  $$("[data-del]").forEach(b => b.onclick = async () => { await api(`/api/jobs/${b.dataset.del}`, {method: "DELETE"}); refreshProjects(); });
+  $$(".log").forEach(l => l.scrollTop = l.scrollHeight);
+  const g = $("#gallery");
+  const sig = JSON.stringify(shorts.map(s => [s.slug, s.n, s.mtime]));
+  if (g.dataset.sig === sig) return; g.dataset.sig = sig;
+  g.innerHTML = shorts.length ? `<div class="gallery">${shorts.map(s => `<a class="card" href="#short/${encodeURIComponent(s.slug)}/${s.n}">
+     <div class="cov">${s.rendered ? `<img src="${s.cover}" alt="" loading="lazy">` : ""}<span class="q pill ${s.qc_pass ? "ok" : "warn"}">${s.qc_pass ? "QC ✓" : "QC !"}</span></div>
+     <b>${esc(s.title)}</b><span class="mono">${(s.duration || 0).toFixed(0)} s · B-roll ${Math.round((s.stats.broll_share || 0) * 100)} %</span></a>`).join("")}</div>`
+    : `<div class="empty">Aucun Short pour l'instant. <a href="#new">Lancez votre premier montage</a>.</div>`;
+}
+
+/* ---------------- SHORT EDITOR ---------------- */
+let S = null, selShot = null, tab = "shots", rerenderJob = null;
+async function viewShort(slug, n) {
+  slug = decodeURIComponent(slug);
+  S = await api(`/api/shorts/${encodeURIComponent(slug)}/${n}`).catch(e => { toast(e.message, true); return null; });
+  if (!S) return;
+  drawShort();
+  timer = setInterval(watchRerender, 1500);
+}
+const kindOf = s => s.kind === "A" ? "A" : (s.asset_kind === "image" ? "P" : "B");
+function drawShort() {
+  const segs = S.shots.map(s => `<div class="seg ${kindOf(s)} ${selShot === s.i ? "sel" : ""}" data-i="${s.i}" style="width:${((s.t1 - s.t0) / S.duration * 100).toFixed(3)}%" title="${fmtT(s.t0)} · ${esc(s.word || "speaker")}"></div>`).join("");
+  $("#view").innerHTML = `
+  <div class="head"><div><div class="eyebrow"><a href="#projects">Projets</a> / Short ${S.n}</div><h1>${esc(S.title || S.slug)}</h1>
+    <p class="mono">${S.duration.toFixed(1)} s · ${S.stats.shots} plans · ${S.stats.cuts_per_min} coupes/min · B-roll ${Math.round(S.stats.broll_share * 100)} %</p></div>
+    ${S.qc ? `<span class="pill ${S.qc.pass ? "ok" : "warn"}" style="font-size:13px;padding:7px 10px">${S.qc.pass ? "Contrôle qualité ✓" : "Contrôle qualité : à vérifier"}</span>` : ""}</div>
+  <div class="editor">
+    <div class="player">
+      <div class="phone">${S.video ? `<video id="vid" src="${S.video}" controls playsinline preload="metadata"></video>` : `<div class="ph">Pas encore rendu</div>`}</div>
+      <div class="downloads">
+        <a class="btn" href="${S.video || "#"}" download>MP4</a><a class="btn" href="${S.srt}" download>Sous-titres SRT</a>
+        <a class="btn" href="${S.cover}" download>Couverture</a><button class="btn" id="copyCredits">Copier crédits</button></div>
+    </div>
+    <div>
+      <div id="dirtyBox"></div>
+      <div class="timeline" id="tl">${segs}<div class="head" id="tlHead"></div></div>
+      <div class="legend"><span><i style="background:var(--aroll)"></i>Speaker</span><span><i style="background:var(--broll)"></i>B-roll vidéo</span><span><i style="background:var(--photo)"></i>B-roll photo</span><span class="mono" id="tc">0:00.0</span></div>
+      <div class="tabs">${[["shots", "Plans"], ["caps", "Sous-titres"], ["qc", "Qualité"], ["credits", "Crédits"]].map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div id="tabBody"></div>
+    </div>
+  </div>`;
+  drawDirty(); drawTab();
+  const v = $("#vid");
+  $$("#tl .seg").forEach(el => el.onclick = e => { const s = S.shots[+el.dataset.i]; seek(s.t0 + 0.05); selectShot(s.i); });
+  $$(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.tab; $$(".tabs button").forEach(x => x.classList.toggle("on", x === b)); drawTab(); });
+  $("#copyCredits").onclick = () => copy(S.credits);
+  if (v) v.ontimeupdate = () => {
+    $("#tlHead").style.left = (v.currentTime / S.duration * 100) + "%"; $("#tc").textContent = fmtT(v.currentTime);
+    $$(".cap").forEach(c => c.classList.toggle("now", v.currentTime >= +c.dataset.s && v.currentTime < +c.dataset.e));
+  };
+}
+function seek(t) { const v = $("#vid"); if (v) { v.currentTime = t; } }
+function selectShot(i) { selShot = i; $$("#tl .seg").forEach(s => s.classList.toggle("sel", +s.dataset.i === i)); $$(".shot").forEach(s => s.classList.toggle("sel", +s.dataset.i === i)); const el = $(`.shot[data-i="${i}"]`); el?.scrollIntoView({block: "nearest", behavior: "smooth"}); }
+function copy(text) { (navigator.clipboard?.writeText(text) || Promise.reject()).then(() => toast("Copié"), () => toast("Copie impossible : sélectionnez le texte dans l'onglet Crédits", true)); }
+function thumbFor(s) {
+  if (s.kind === "B" && s.asset_path) return `/api/thumb?path=${encodeURIComponent(s.asset_path)}&t=${((s.in || 0) + 0.4).toFixed(2)}&w=180`;
+  return S.video ? `/api/thumb?path=${encodeURIComponent(S.final_path)}&t=${((s.t0 + s.t1) / 2).toFixed(2)}&w=180&v=${(S.video.split("v=")[1] || "")}` : "";
+}
+function drawTab() {
+  const b = $("#tabBody");
+  if (tab === "shots") {
+    b.innerHTML = `<div class="shots">${S.shots.map(s => {
+      const k = kindOf(s);
+      return `<div class="shot ${selShot === s.i ? "sel" : ""}" data-i="${s.i}">
+        <div class="th" data-seek="${s.t0}">${thumbFor(s) ? `<img src="${thumbFor(s)}" alt="" loading="lazy">` : ""}</div>
+        <div class="mid"><div class="t"><span class="pill ${k}">${k === "A" ? "Speaker" + (s.zoom ? " " + Math.round(s.zoom * 100) + " %" : "") : k === "P" ? "Photo" : "Vidéo"}</span>
+          <span class="mono muted">${fmtT(s.t0)} → ${fmtT(s.t1)}</span>${s.word ? `<span class="w">« ${esc(s.word)} »</span>` : ""}</div>
+          <div class="c" title="${esc(s.credit || "")}">${k === "A" ? "Plan sur la personne qui parle" : esc(s.credit || s.source || "")}</div></div>
+        <div class="act">${k === "A" ? `<button class="btn sm" data-add="${s.i}">Ajouter un B-roll</button>`
+          : `<button class="btn sm" data-add="${s.i}">Remplacer</button><button class="btn sm ghost" data-rm="${s.i}">Retirer</button>`}</div></div>`;
+    }).join("")}</div>`;
+    $$("[data-seek]").forEach(el => el.onclick = () => { seek(+el.dataset.seek + 0.05); selectShot(+el.parentElement.dataset.i); });
+    $$("[data-rm]").forEach(el => el.onclick = () => editShot(+el.dataset.rm, {action: "remove"}));
+    $$("[data-add]").forEach(el => el.onclick = () => openPicker(+el.dataset.add));
+  } else if (tab === "caps") {
+    b.innerHTML = `<p class="hint" style="margin-top:0">Corrigez un mot ou une faute : Entrée pour valider. Le timing est conservé, puis re-rendez le Short.</p>
+      <div class="caps">${S.chunks.map((c, k) => `<div class="cap" data-s="${c.start}" data-e="${c.end}"><span class="mono muted" style="cursor:pointer" data-cseek="${c.start}">${fmtT(c.start)}</span>
+      <input type="text" value="${esc(c.text)}" data-k="${k}" data-orig="${esc(c.text)}"><span class="mono muted">${(c.end - c.start).toFixed(1)} s</span></div>`).join("")}</div>`;
+    $$("[data-cseek]").forEach(el => el.onclick = () => seek(+el.dataset.cseek + 0.02));
+    $$(".cap input").forEach(inp => {
+      const save = async () => { if (inp.value.trim() === inp.dataset.orig) return;
+        try { S = await api(`/api/shorts/${encodeURIComponent(S.slug)}/${S.n}/caption`, {method: "POST", body: JSON.stringify({chunk: +inp.dataset.k, text: inp.value})}); drawDirty(); inp.dataset.orig = inp.value.trim(); toast("Sous-titre modifié"); } catch (e) { toast(e.message, true); } };
+      inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); inp.blur(); } }; inp.onblur = save;
+    });
+  } else if (tab === "qc") {
+    b.innerHTML = S.qc ? `<table class="qc"><thead><tr><th>Contrôle</th><th>Valeur</th><th>Cible</th><th></th></tr></thead><tbody>${S.qc.checks.map(c => `<tr><td>${esc(c.check)}</td><td class="mono">${esc(c.value)}</td><td class="muted">${esc(c.target)}</td><td>${c.ok ? '<span class="pill ok">OK</span>' : '<span class="pill warn">À voir</span>'}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Pas encore de rapport.</div>`;
+  } else {
+    b.innerHTML = `<p class="hint" style="margin-top:0">À coller dans la description de la vidéo (obligatoire pour les licences CC BY).</p><textarea readonly style="min-height:220px">${esc(S.credits)}</textarea><div class="row" style="margin-top:10px"><button class="btn" id="cc2">Copier</button></div>`;
+    $("#cc2").onclick = () => copy(S.credits);
+  }
+}
+function drawDirty() {
+  const box = $("#dirtyBox"); if (!box) return;
+  if (rerenderJob && ["queued", "running"].includes(rerenderJob.status)) {
+    box.innerHTML = `<div class="dirty run"><span><span class="spinner"></span>&nbsp; Re-rendu en cours — ${esc(rerenderJob.stage)} (${rerenderJob.progress || 0} %)</span></div>`;
+  } else if (S.dirty) {
+    box.innerHTML = `<div class="dirty"><span><b>Modifications non rendues.</b> <span class="muted">La vidéo affichée est l'ancienne version.</span></span><button class="btn primary" id="rr">Re-rendre (~40 s)</button></div>`;
+    $("#rr").onclick = async () => { rerenderJob = await api(`/api/shorts/${encodeURIComponent(S.slug)}/${S.n}/rerender`, {method: "POST"}); S.dirty = false; drawDirty(); };
+  } else box.innerHTML = "";
+}
+async function watchRerender() {
+  if (!rerenderJob || !["queued", "running"].includes(rerenderJob.status)) return;
+  rerenderJob = await api(`/api/jobs/${rerenderJob.id}`).catch(() => rerenderJob);
+  if (rerenderJob.status === "done") { toast("Short re-rendu"); rerenderJob = null; const pos = $("#vid")?.currentTime || 0; S = await api(`/api/shorts/${encodeURIComponent(S.slug)}/${S.n}`); drawShort(); seek(pos); }
+  else if (["failed", "cancelled"].includes(rerenderJob.status)) { toast("Re-rendu échoué : " + (rerenderJob.error || ""), true); rerenderJob = null; S.dirty = true; drawDirty(); }
+  else drawDirty();
+}
+async function editShot(i, body) {
+  try { S = await api(`/api/shorts/${encodeURIComponent(S.slug)}/${S.n}/shot/${i}`, {method: "POST", body: JSON.stringify(body)}); drawShort(); selectShot(i); toast("Plan modifié — pensez à re-rendre"); }
+  catch (e) { toast(e.message, true); }
+}
+
+/* ---- B-roll picker drawer ---- */
+function openPicker(i) {
+  const s = S.shots[i];
+  const q = s.query || s.word || "";
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `<div class="scrim"></div><div class="drawer" role="dialog" aria-label="Choisir un B-roll">
+    <header><div><div class="eyebrow">Plan ${i + 1} · ${fmtT(s.t0)} → ${fmtT(s.t1)}</div><h2>${s.kind === "A" ? "Ajouter" : "Remplacer"} le B-roll${s.word ? ` de « ${esc(s.word)} »` : ""}</h2></div><button class="btn ghost" id="pkClose">Fermer</button></header>
+    <div class="body">
+      <div class="tabs" style="margin:0">${[["search", "Rechercher"], ["lib", "Ma bibliothèque"], ["file", "Envoyer un fichier"]].map(([k, l], n) => `<button data-pt="${k}" class="${n ? "" : "on"}">${l}</button>`).join("")}</div>
+      <div id="pkBody"></div></div></div>`;
+  document.body.appendChild(wrap);
+  const close = () => wrap.remove();
+  $(".scrim", wrap).onclick = close; $("#pkClose", wrap).onclick = close;
+  document.addEventListener("keydown", function esc_(e) { if (e.key === "Escape") { close(); document.removeEventListener("keydown", esc_); } });
+  const use = async asset => { close(); await editShot(i, {action: "asset", asset, query: $("#pkQ")?.value || q}); };
+  const tabsEl = $$("[data-pt]", wrap);
+  const show = async k => {
+    tabsEl.forEach(b => b.classList.toggle("on", b.dataset.pt === k));
+    const body = $("#pkBody", wrap);
+    if (k === "search") {
+      body.innerHTML = `<div class="row"><input type="text" id="pkQ" value="${esc(q)}" placeholder="ex. glass of water (en anglais = plus de résultats)" style="flex:1;min-width:200px">
+        <label class="switch"><input type="checkbox" id="pkPh">Photos</label><button class="btn primary" id="pkGo">Chercher</button></div>
+        <div class="hint">Le système cherche dans vos sources et ne garde que ce qui montre vraiment le mot (vision CLIP). Comptez 20 s à 2 min.</div><div id="pkRes"></div>`;
+      const go = async () => {
+        const res = $("#pkRes", wrap); res.innerHTML = `<div class="hint"><span class="spinner"></span>&nbsp; Recherche de « ${esc($("#pkQ").value)} »…</div>`;
+        let st = await api("/api/search", {method: "POST", body: JSON.stringify({query: $("#pkQ").value, photos: $("#pkPh").checked})}).catch(e => (toast(e.message, true), null));
+        while (st && !["done", "failed"].includes(st.status)) { await new Promise(r => setTimeout(r, 1500)); if (!document.body.contains(wrap)) return; st = await api(`/api/search/${st.id}`); }
+        if (!st) return;
+        res.innerHTML = st.results?.length ? `<div class="results">${st.results.map((a, n) => `<div class="res"><div class="im">${a.kind === "image" ? `<img src="/api/thumb?path=${encodeURIComponent(a.path)}&w=260" alt="">` : `<img src="/api/thumb?path=${encodeURIComponent(a.path)}&t=${((a.in || 0) + .4).toFixed(2)}&w=260" alt="">`}</div>
+          <small title="${esc(a.credit)}">${esc(a.credit || a.source)}</small><span class="row"><span class="pill ${a.kind === "image" ? "P" : "B"}">${a.kind === "image" ? "Photo" : "Vidéo"}</span>${a.match ? `<span class="mono muted" style="font-size:11px">${Math.round(a.match * 100)} %</span>` : ""}</span>
+          <button class="btn sm primary" data-use="${n}">Utiliser</button></div>`).join("")}</div>`
+          : `<div class="empty">Rien qui montre vraiment « ${esc(st.query)} ». Essayez un autre mot (en anglais), cochez Photos, ou envoyez votre fichier.</div>`;
+        $$("[data-use]", res).forEach(b => b.onclick = () => use(st.results[+b.dataset.use]));
+      };
+      $("#pkGo", wrap).onclick = go; $("#pkQ", wrap).onkeydown = e => { if (e.key === "Enter") go(); };
+    } else if (k === "lib") {
+      const lib = await api("/api/library");
+      body.innerHTML = lib.broll.length ? `<div class="results">${lib.broll.map((a, n) => `<div class="res"><div class="im"><img src="/api/thumb?path=${encodeURIComponent(a.path)}&t=0.5&w=260" alt="" loading="lazy"></div><small>${esc(a.name)}</small><button class="btn sm primary" data-l="${n}">Utiliser</button></div>`).join("")}</div>`
+        : `<div class="empty">Votre bibliothèque est vide. Ajoutez des clips dans <a href="#library">Bibliothèque</a>.</div>`;
+      $$("[data-l]", body).forEach(b => b.onclick = () => { const a = lib.broll[+b.dataset.l]; use({path: a.path, source: "library", credit: ""}); });
+    } else {
+      body.innerHTML = `<label class="drop panel" id="pkDrop" style="padding:34px"><strong>Choisissez une vidéo ou une photo</strong><span class="muted">Utilisez uniquement des images que vous avez le droit d'utiliser.</span><input type="file" id="pkFile" accept="video/*,image/*" hidden></label><div id="pkUp"></div>`;
+      $("#pkFile", wrap).onchange = async e => {
+        const f = e.target.files[0]; if (!f) return; $("#pkUp", wrap).innerHTML = `<div class="hint"><span class="spinner"></span>&nbsp; Envoi…</div>`;
+        const fd = new FormData(); fd.append("file", f);
+        try { const a = await api("/api/assets", {method: "POST", body: fd}); use(a); } catch (er) { toast(er.message, true); }
+      };
+    }
+  };
+  tabsEl.forEach(b => b.onclick = () => show(b.dataset.pt)); show("search");
+}
+
+/* ---------------- LIBRARY ---------------- */
+async function viewLibrary() {
+  const lib = await api("/api/library");
+  $("#view").innerHTML = `<div class="head"><div><div class="eyebrow">Bibliothèque</div><h1>Vos B-roll et vos musiques</h1>
+    <p>Vos clips B-roll passent en premier : le système les trouve par ce qu'ils montrent, pas par leur nom. Les musiques sont choisies automatiquement et baissées sous la voix.</p></div></div>
+    <div class="panel pad" style="margin-bottom:20px"><div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>B-roll <span class="muted mono">(${lib.broll.length})</span></h2>
+      <label class="btn primary">Ajouter des clips<input type="file" id="upB" accept="video/*,image/*" multiple hidden></label></div>
+      ${lib.broll.length ? `<div class="lib">${lib.broll.map(a => `<div class="res"><div class="im"><img src="/api/thumb?path=${encodeURIComponent(a.path)}&t=0.5&w=300" alt="" loading="lazy"></div><small title="${esc(a.name)}">${esc(a.name)}</small><span class="row"><span class="pill ${a.kind === "image" ? "P" : "B"}">${a.kind === "image" ? "Photo" : "Vidéo"}</span><span class="mono muted" style="font-size:11px">${fmtMB(a.size)}</span><span style="flex:1"></span><button class="btn sm ghost danger" data-delb="${esc(a.name)}">Supprimer</button></span></div>`).join("")}</div>` : `<div class="empty">Aucun clip. Ajoutez vos propres vidéos (ou des clips dont vous avez les droits).</div>`}</div>
+    <div class="panel pad"><div class="row" style="justify-content:space-between;margin-bottom:14px"><h2>Musique <span class="muted mono">(${lib.music.length})</span></h2>
+      <label class="btn primary">Ajouter des musiques<input type="file" id="upM" accept="audio/*" multiple hidden></label></div>
+      ${lib.music.length ? `<div class="tracks">${lib.music.map(a => `<div class="track"><b style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.name)}</b><audio controls preload="none" src="${a.url}"></audio><button class="btn sm ghost danger" data-delm="${esc(a.name)}">Supprimer</button></div>`).join("")}</div>` : `<div class="empty">Aucune musique : les Shorts seront montés sans musique de fond. Utilisez des pistes libres de droits.</div>`}</div>`;
+  const up = kind => async e => { const fd = new FormData(); [...e.target.files].forEach(f => fd.append("files", f)); toast("Envoi…"); try { await api(`/api/library/${kind}`, {method: "POST", body: fd}); toast("Ajouté"); viewLibrary(); } catch (er) { toast(er.message, true); } };
+  $("#upB").onchange = up("broll"); $("#upM").onchange = up("music");
+  $$("[data-delb]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api(`/api/library/broll/${encodeURIComponent(b.dataset.delb)}`, {method: "DELETE"}); viewLibrary(); } else { b.dataset.sure = 1; b.textContent = "Confirmer ?"; } });
+  $$("[data-delm]").forEach(b => b.onclick = async () => { if (b.dataset.sure) { await api(`/api/library/music/${encodeURIComponent(b.dataset.delm)}`, {method: "DELETE"}); viewLibrary(); } else { b.dataset.sure = 1; b.textContent = "Confirmer ?"; } });
+}
+
+/* ---------------- SETTINGS ---------------- */
+async function viewSettings() {
+  SETTINGS = await api("/api/settings"); const c = SETTINGS.config, k = SETTINGS.keys;
+  let order = [...(c.broll_sources || [])]; SOURCES.forEach(([s]) => { if (!order.includes(s)) order.push(s); });
+  const on = new Set(c.broll_sources || []);
+  $("#view").innerHTML = `<div class="head"><div><div class="eyebrow">Réglages</div><h1>Valeurs par défaut</h1><p>Utilisées pour chaque nouveau montage. Dossier de travail : <span class="mono">${esc(SETTINGS.workspace)}</span></p></div><button class="btn primary" id="save">Enregistrer</button></div>
+  <div class="grid2"><div style="display:grid;gap:20px">
+    <div class="panel pad" style="display:grid;gap:14px"><h2>Montage</h2><div class="fields">
+      <label class="f">Marque (filigrane) — « | » sépare les deux couleurs<input type="text" id="s_brand" value="${esc(c.brand)}" placeholder="WILD|FRAME"></label>
+      <label class="f">Shorts par vidéo<input type="number" id="s_count" min="1" max="6" value="${c.count}"></label>
+      <label class="f">Durée min. (s)<input type="number" id="s_min" value="${c.min_dur}"></label><label class="f">Durée max. (s)<input type="number" id="s_max" value="${c.max_dur}"></label>
+      <label class="f">Durée visée (s)<input type="number" id="s_target" value="${c.target_dur}"></label>
+      <label class="f">Transcription<select id="s_model">${["small", "medium", "large-v3"].map(m => `<option ${c.whisper_model === m ? "selected" : ""}>${m}</option>`).join("")}</select></label>
+      <label class="f">Choix de l'histoire par Claude<select id="s_llm">${[["auto", "Auto (si clé)"], ["on", "Toujours"], ["off", "Jamais"]].map(([v, l]) => `<option value="${v}" ${c.llm === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+      <label class="f">Langue<input type="text" id="s_lang" value="${esc(c.language || "")}" placeholder="auto"></label></div></div>
+    <div class="panel pad" style="display:grid;gap:14px"><h2>Image et son</h2><div class="fields">
+      <label class="f">Intensité du look (LUT) <span class="mono" id="v_lut">${Math.round(c.lut_mix * 100)} %</span><input type="range" id="s_lut" min="0" max="1" step="0.05" value="${c.lut_mix}"></label>
+      <label class="f">Netteté <span class="mono" id="v_sh">${c.sharpen}</span><input type="range" id="s_sh" min="0" max="1.5" step="0.1" value="${c.sharpen}"></label>
+      <label class="f">Musique sous la voix <span class="mono" id="v_mu">${c.music_db_under_voice} dB</span><input type="range" id="s_mu" min="-30" max="-10" step="1" value="${c.music_db_under_voice}"></label></div></div>
+  </div><div style="display:grid;gap:20px">
+    <div class="panel pad" style="display:grid;gap:12px"><h2>Sources B-roll</h2><p class="hint" style="margin:0">Activées et dans l'ordre d'essai. Les vidéos passent avant les photos.</p>
+      <div id="srcList" style="display:grid;gap:6px"></div>
+      <label class="switch"><input type="checkbox" id="s_photos" ${c.photo_fallback ? "checked" : ""}>Photo de secours si aucune vidéo ne montre le mot</label></div>
+    <div class="panel pad" style="display:grid;gap:12px"><h2>Clés API</h2><p class="hint" style="margin:0">Stockées uniquement sur cet ordinateur. Laissez vide pour garder la clé actuelle.</p>
+      ${[["pexels", "Pexels (vidéos, gratuit — pexels.com/api)"], ["pixabay", "Pixabay (vidéos, gratuit)"], ["anthropic", "Anthropic (optionnel : choix de l'histoire)"]].map(([id, l]) => `<label class="f">${l} ${k[id] ? '<span class="pill ok">enregistrée</span>' : ""}<span class="row"><input type="password" id="k_${id}" autocomplete="off" placeholder="${k[id] ? "••••••••" : "Coller la clé"}" style="flex:1">${k[id] ? `<button class="btn sm ghost danger" data-clear="${id}">Effacer</button>` : ""}</span></label>`).join("")}</div>
+  </div></div>`;
+  const drawSrc = () => {
+    $("#srcList").innerHTML = order.map((s, n) => { const l = (SOURCES.find(x => x[0] === s) || [s, s])[1];
+      return `<div class="row" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px"><label class="switch" style="flex:1"><input type="checkbox" data-src="${s}" ${on.has(s) ? "checked" : ""}>${l}</label>
+        <button class="btn sm ghost" data-up="${n}" ${n ? "" : "disabled"} aria-label="Monter">↑</button><button class="btn sm ghost" data-dn="${n}" ${n < order.length - 1 ? "" : "disabled"} aria-label="Descendre">↓</button></div>`; }).join("");
+    $$("[data-src]").forEach(i => i.onchange = () => i.checked ? on.add(i.dataset.src) : on.delete(i.dataset.src));
+    $$("[data-up]").forEach(b => b.onclick = () => { const n = +b.dataset.up; [order[n - 1], order[n]] = [order[n], order[n - 1]]; drawSrc(); });
+    $$("[data-dn]").forEach(b => b.onclick = () => { const n = +b.dataset.dn; [order[n + 1], order[n]] = [order[n], order[n + 1]]; drawSrc(); });
+  };
+  drawSrc();
+  $("#s_lut").oninput = e => $("#v_lut").textContent = Math.round(e.target.value * 100) + " %";
+  $("#s_sh").oninput = e => $("#v_sh").textContent = e.target.value;
+  $("#s_mu").oninput = e => $("#v_mu").textContent = e.target.value + " dB";
+  const clear = new Set();
+  $$("[data-clear]").forEach(b => b.onclick = () => { clear.add(b.dataset.clear); b.textContent = "Sera effacée"; b.disabled = true; });
+  $("#save").onclick = async () => {
+    const keys = {}; ["pexels", "pixabay", "anthropic"].forEach(id => { const v = $("#k_" + id).value.trim(); if (v) keys[id] = v; else if (clear.has(id)) keys[id] = ""; });
+    const config = {brand: $("#s_brand").value.trim(), count: +$("#s_count").value, min_dur: +$("#s_min").value, max_dur: +$("#s_max").value, target_dur: +$("#s_target").value,
+      whisper_model: $("#s_model").value, llm: $("#s_llm").value, language: $("#s_lang").value.trim() || null, lut_mix: +$("#s_lut").value, sharpen: +$("#s_sh").value,
+      music_db_under_voice: +$("#s_mu").value, photo_fallback: $("#s_photos").checked, broll_sources: order.filter(s => on.has(s))};
+    try { SETTINGS = await api("/api/settings", {method: "PUT", body: JSON.stringify({config, keys})}); toast("Réglages enregistrés"); viewSettings(); } catch (e) { toast(e.message, true); }
+  };
+}
+
+route();
+</script>
+</body>
+</html>

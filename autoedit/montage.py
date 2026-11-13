@@ -1,6 +1,8 @@
 """Montage mode: footage without speech → best moments cut at ~1 s rhythm, optional text captions + music."""
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 
 from .util import FPS
@@ -70,4 +72,4 @@ def plan(src, info, scene_list, cfg):
     stats = {"duration": D, "shots": len(shots), "cuts_per_min": round((len(shots) - 1) / D * 60, 1) if D else 0,
              "broll_share": 1.0, "first_broll_at": 0.0, "jump_cuts_removed_s": 0}
     return {"mode": "montage", "duration": D, "islands": [], "words": words, "shots": shots, "stats": stats,
-            "title": "montage", "clip": {"start": 0, "end": info["duration"], "source": "montage"}}
+            "title": Path(src).stem.rsplit("_", 1)[0].replace("_", " ") + " (montage)", "clip": {"start": 0, "end": info["duration"], "source": "montage"}}

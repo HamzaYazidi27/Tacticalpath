@@ -16,6 +16,7 @@ python -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install --upgrade pip
 & .\.venv\Scripts\pip.exe install -r requirements.txt
 & .\.venv\Scripts\pip.exe install -r requirements-vision.txt
+& .\.venv\Scripts\pip.exe install -r requirements-web.txt
 & .\.venv\Scripts\python.exe -c "from faster_whisper import WhisperModel; WhisperModel('small', device='auto', compute_type='auto'); from transformers import CLIPModel, CLIPProcessor; CLIPModel.from_pretrained('openai/clip-vit-base-patch32'); CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32'); print('models ready')"
 if (-not (Test-Path autoedit.config.json)) { Copy-Item autoedit.config.example.json autoedit.config.json }
 New-Item -ItemType Directory -Force -Path inbox, outbox, broll, music | Out-Null
@@ -23,3 +24,4 @@ Write-Host ""
 Write-Host "Installed. Edit autoedit.config.json (brand), then run:"
 Write-Host "  .\.venv\Scripts\python.exe -m autoedit my_video.mp4"
 Write-Host "  .\.venv\Scripts\python.exe -m autoedit --watch inbox --out outbox"
+Write-Host "  Interface web : double-cliquez sur start-studio.bat"

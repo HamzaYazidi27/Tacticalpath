@@ -19,6 +19,7 @@ python3 -m venv .venv
 . .venv/bin/activate
 pip install --upgrade pip >/dev/null
 pip install -r requirements.txt
+pip install -r requirements-web.txt
 pip install -r requirements-vision.txt || echo "⚠ vision (CLIP) not installed — B-roll will be matched by name only"
 echo "Downloading the speech + vision models (once)…"
 python - <<'PY'
@@ -40,4 +41,5 @@ cat <<MSG
   2. Optional but recommended: export PEXELS_API_KEY=...   (free: https://www.pexels.com/api/)
   3. Run once:      . .venv/bin/activate && python -m autoedit my_video.mp4
      Or autopilot:  . .venv/bin/activate && python -m autoedit --watch inbox --out outbox
+     Web studio:    ./start-studio.sh   (opens http://127.0.0.1:8765)
 MSG

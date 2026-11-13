@@ -101,10 +101,15 @@ def main(argv=None):
     ap.add_argument("--offline", action="store_true", help="never download stock B-roll")
     ap.add_argument("--config", help="JSON config file (default: ./autoedit.config.json if present)")
     ap.add_argument("--dry-run", action="store_true", help="analyse and plan only, no rendering")
+    ap.add_argument("--rerender", metavar="EDL_JSON", help="re-render an edited *_edl.json (no re-analysis)")
     ap.add_argument("--keep-work", action="store_true", help="keep intermediate shot renders")
     a = ap.parse_args(argv)
     cfg = build_cfg(a)
     out = Path(a.out)
+    if a.rerender:
+        from .pipeline import rerender
+        log(f"done: {rerender(Path(a.rerender), cfg)}")
+        return
     if a.watch:
         return watch(Path(a.watch), out, cfg, a.keep_work)
     if not a.inputs:
