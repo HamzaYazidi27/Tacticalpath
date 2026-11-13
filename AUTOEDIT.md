@@ -18,28 +18,58 @@ vidéo brute ─► transcription mot à mot ─► choix de la meilleure histoi
 | **Quelqu'un parle** (podcast, interview, face caméra, vlog) | Podcast-clip | Sélection de la meilleure histoire, coupes des silences, B-roll sur les mots, sous-titres mot à mot |
 | **Pas de parole** (rushes, stock, paysages) | Montage | Meilleurs moments (netteté, mouvement), rythme ~1 s, accroche en premier, musique ou son d'ambiance, texte optionnel (`--text`) |
 
-## Installation (une seule fois)
+## Installation (une seule fois, sans Claude)
 
-Il faut Python 3.10+ et ffmpeg avec libass. Ensuite :
+Le système tourne **entièrement sur votre ordinateur**. Claude n'est pas nécessaire : la sélection de l'histoire, la vision (CLIP) et la transcription sont locales. Seules les recherches de B-roll passent par Internet.
+
+**1. Récupérer le code** (branche `claude/focused-lamport-wdn13a`) :
+
+```bash
+git clone -b claude/focused-lamport-wdn13a https://github.com/HamzaYazidi27/Tacticalpath.git
+```
+
+```bash
+cd Tacticalpath
+```
+
+Sans git, téléchargez le ZIP de la branche depuis GitHub (bouton « Code » → « Download ZIP »).
+
+**2a. Windows 10/11** (PowerShell, dans le dossier du projet) :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+Ce script installe automatiquement Python, ffmpeg (avec libass) et deno via `winget`, puis les dépendances et les modèles. Ce script n'a pas pu être testé ici : le serveur de développement tourne sous Linux.
+
+**2b. Mac / Linux / WSL :**
 
 ```bash
 ./install.sh
 ```
 
-Le script crée `.venv`, installe les dépendances, télécharge le modèle de transcription et prépare les dossiers `inbox/ outbox/ broll/ music/`.
+Prérequis : Python 3.10+, ffmpeg avec libass, et deno ou node pour YouTube (`brew install ffmpeg deno` sur Mac). Testé sur une installation neuve : 1 min 20.
 
-Avec Docker (non testé ici, Docker n'était pas disponible dans l'environnement de développement) :
+Ce qui est téléchargé une seule fois : la transcription Whisper `small` (~500 Mo) et la vision CLIP (~600 Mo + torch CPU ~200 Mo).
 
-```bash
-docker build -t autoedit .
-```
+**3. Mettre votre marque** dans `autoedit.config.json`, par exemple `"brand": "WILD|FRAME"`.
+
+**4. Optionnel :**
+- une clé Pexels gratuite (pexels.com/api) pour plus de vidéos B-roll : `export PEXELS_API_KEY=...` (Windows : `setx PEXELS_API_KEY "..."`) ;
+- des musiques libres de droits dans `music/`.
 
 ## Utilisation
 
-**Une vidéo :**
+**Une vidéo (Mac/Linux) :**
 
 ```bash
 . .venv/bin/activate && python -m autoedit ma_video.mp4
+```
+
+**Une vidéo (Windows) :**
+
+```powershell
+.\.venv\Scripts\python.exe -m autoedit ma_video.mp4
 ```
 
 **Pilote automatique** (déposez des vidéos dans `inbox/`, les Shorts apparaissent dans `outbox/`) :

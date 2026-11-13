@@ -9,17 +9,27 @@ if ! command -v ffmpeg >/dev/null; then
   elif command -v apt-get >/dev/null; then sudo apt-get update && sudo apt-get install -y ffmpeg
   else echo "Install ffmpeg (with libass) and re-run."; exit 1; fi
 fi
-ffmpeg -hide_banner -filters 2>/dev/null | grep -q " ass " || { echo "Your ffmpeg lacks libass (captions). Install a full build."; exit 1; }
+FILTERS="$(ffmpeg -hide_banner -filters 2>/dev/null || true)"
+case "$FILTERS" in *" ass "*) ;; *) echo "Your ffmpeg lacks libass (captions). Install a full build."; exit 1;; esac
+if ! command -v deno >/dev/null && ! command -v node >/dev/null; then
+  echo "⚠ Neither deno nor node found: YouTube Creative Commons B-roll needs one of them."
+  echo "  Install deno: curl -fsSL https://deno.land/install.sh | sh   (or: brew install deno)"
+fi
 python3 -m venv .venv
 . .venv/bin/activate
 pip install --upgrade pip >/dev/null
 pip install -r requirements.txt
 pip install -r requirements-vision.txt || echo "⚠ vision (CLIP) not installed — B-roll will be matched by name only"
-echo "Downloading the speech model (once)…"
+echo "Downloading the speech + vision models (once)…"
 python - <<'PY'
 from faster_whisper import WhisperModel
 WhisperModel("small", device="auto", compute_type="auto")
-print("model ready")
+try:
+    from transformers import CLIPModel, CLIPProcessor
+    CLIPModel.from_pretrained("openai/clip-vit-base-patch32"); CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+except Exception as e:
+    print("vision model skipped:", e)
+print("models ready")
 PY
 [ -f autoedit.config.json ] || cp autoedit.config.example.json autoedit.config.json
 mkdir -p inbox outbox broll music
