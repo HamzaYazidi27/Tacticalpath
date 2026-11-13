@@ -109,6 +109,13 @@ textarea{resize:vertical;min-height:110px;font-family:var(--mono);font-size:12px
 .card .cov{aspect-ratio:9/16;border-radius:10px;overflow:hidden;background:var(--panel-2);border:1px solid var(--line);position:relative}
 .card .cov img{width:100%;height:100%;object-fit:cover;display:block}
 .card .cov .q{position:absolute;top:8px;left:8px;background:rgba(6,8,10,.82);backdrop-filter:blur(4px)}
+.card .cov .vir{position:absolute;top:8px;right:8px}
+.vir{display:inline-flex;align-items:center;gap:4px;font:700 12px/1 var(--mono);padding:5px 8px;border-radius:999px;background:rgba(6,8,10,.82);backdrop-filter:blur(4px);border:1px solid var(--vc,#555);color:var(--vc,#ccc)}
+.vir.hi{--vc:#19F464}.vir.mid{--vc:#f0b24a}.vir.lo{--vc:#9aa3ab}
+.card .hk{font-size:12px;color:var(--muted);font-style:italic;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.score{display:grid;gap:10px}.score .row2{display:grid;grid-template-columns:150px 1fr 44px;gap:10px;align-items:center;font-size:13px}
+.score .bar{height:8px}.score .bar i{background:var(--accent)}
+.big{display:flex;align-items:baseline;gap:10px}.big b{font:800 44px/1 var(--mono);color:var(--vc,#ccc)}.big.hi{--vc:#19F464}.big.mid{--vc:#f0b24a}.big.lo{--vc:#9aa3ab}
 .card:hover .cov{border-color:var(--accent)}
 .card .unr{position:absolute;inset:0;display:grid;place-content:center;gap:6px;text-align:center;padding:16px;color:var(--muted);font-size:12px}
 .card .unr b{color:var(--ink);font-size:13px}
@@ -253,7 +260,7 @@ async function viewNew() {
       <h2>Options</h2>
       <div class="fields">
         <label class="f">Marque (filigrane)<input type="text" id="o_brand" placeholder="WILD|FRAME" value="${esc(c.brand || "")}"></label>
-        <label class="f">Nombre de Shorts par vidéo<input type="number" id="o_count" min="1" max="6" value="${c.count || 1}"></label>
+        <label class="f">Nombre de Shorts par vidéo<select id="o_count">${[[0, "Auto (selon la durée, classés par viralité)"], 1, 2, 3, 4, 5, 6, 8].map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${v}" ${(+c.count || 0) === v ? "selected" : ""}>${l}</option>`; }).join("")}</select></label>
         <label class="f">Durée min. (s)<input type="number" id="o_min" min="5" max="180" value="${c.min_dur || 30}"></label>
         <label class="f">Durée max. (s)<input type="number" id="o_max" min="10" max="180" value="${c.max_dur || 60}"></label>
         <label class="f">Langue parlée<select id="o_lang"><option value="">Détection auto</option><option value="en">Anglais</option><option value="fr">Français</option><option value="es">Espagnol</option><option value="ar">Arabe</option></select></label>
@@ -343,11 +350,12 @@ async function refreshProjects() {
   const sig = JSON.stringify(shorts.map(s => [s.slug, s.n, s.mtime]));
   if (g.dataset.sig === sig) return; g.dataset.sig = sig;
   g.innerHTML = shorts.length ? `<div class="gallery">${shorts.map(s => `<a class="card" href="#short/${encodeURIComponent(s.slug)}/${s.n}">
-     <div class="cov">${s.rendered ? `<img src="${s.cover}" alt="" loading="lazy">` : `<div class="unr"><b>Pas encore rendu</b><span>Ouvrez-le pour lancer le rendu</span></div>`}<span class="q pill ${!s.rendered ? "bad" : s.qc_pass ? "ok" : "warn"}">${!s.rendered ? "Non rendu" : s.qc_pass ? "QC ✓" : "QC !"}</span></div>
-     <b>${esc(s.title)}</b><span class="mono">${(s.duration || 0).toFixed(0)} s · B-roll ${Math.round((s.stats.broll_share || 0) * 100)} %</span></a>`).join("")}</div>`
+     <div class="cov">${s.rendered ? `<img src="${s.cover}" alt="" loading="lazy">` : `<div class="unr"><b>Pas encore rendu</b><span>Ouvrez-le pour lancer le rendu</span></div>`}<span class="q pill ${!s.rendered ? "bad" : s.qc_pass ? "ok" : "warn"}">${!s.rendered ? "Non rendu" : s.qc_pass ? "QC ✓" : "QC !"}</span>${s.virality != null ? `<span class="vir ${vclass(s.virality)}" title="Score de viralité estimé">🔥 ${s.virality}</span>` : ""}</div>
+     <b>${esc(s.title)}</b>${s.hook ? `<span class="hk">« ${esc(s.hook)} »</span>` : ""}<span class="mono">${(s.duration || 0).toFixed(0)} s · B-roll ${Math.round((s.stats.broll_share || 0) * 100)} %</span></a>`).join("")}</div>`
     : `<div class="empty">Aucun Short pour l'instant. <a href="#new">Lancez votre premier montage</a>.</div>`;
 }
 
+const vclass = v => v >= 65 ? "hi" : v >= 45 ? "mid" : "lo";
 /* ---------------- SHORT EDITOR ---------------- */
 let S = null, selShot = null, tab = "shots", rerenderJob = null;
 async function viewShort(slug, n) {
@@ -363,7 +371,8 @@ function drawShort() {
   $("#view").innerHTML = `
   <div class="head"><div><div class="eyebrow"><a href="#projects">Projets</a> / Short ${S.n}</div><h1>${esc(S.title || S.slug)}</h1>
     <p class="mono">${S.duration.toFixed(1)} s · ${S.stats.shots} plans · ${S.stats.cuts_per_min} coupes/min · B-roll ${Math.round(S.stats.broll_share * 100)} %</p></div>
-    ${S.qc ? `<span class="pill ${S.qc.pass ? "ok" : "warn"}" style="font-size:13px;padding:7px 10px">${S.qc.pass ? "Contrôle qualité ✓" : "Contrôle qualité : à vérifier"}</span>` : ""}</div>
+    <div class="row">${S.virality ? `<span class="vir ${vclass(S.virality.total)}" style="font-size:13px;padding:7px 11px">🔥 Viralité ${S.virality.total}/100</span>` : ""}
+    ${S.qc ? `<span class="pill ${S.qc.pass ? "ok" : "warn"}" style="font-size:13px;padding:7px 10px">${S.qc.pass ? "Contrôle qualité ✓" : "Contrôle qualité : à vérifier"}</span>` : ""}</div></div>
   <div class="editor">
     <div class="player">
       <div class="phone">${S.video ? `<video id="vid" src="${S.video}" controls playsinline preload="metadata"></video>` : `<div class="ph">Pas encore rendu</div>`}</div>
@@ -375,7 +384,7 @@ function drawShort() {
       <div id="dirtyBox"></div>
       <div class="timeline" id="tl">${segs}<div class="head" id="tlHead"></div></div>
       <div class="legend"><span><i style="background:var(--aroll)"></i>Speaker</span><span><i style="background:var(--broll)"></i>B-roll vidéo</span><span><i style="background:var(--photo)"></i>B-roll photo</span><span class="mono" id="tc">0:00.0</span></div>
-      <div class="tabs">${[["shots", "Plans"], ["caps", "Sous-titres"], ["qc", "Qualité"], ["credits", "Crédits"]].map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="tabs">${[["shots", "Plans"], ["hook", "Accroche & score"], ["caps", "Sous-titres"], ["qc", "Qualité"], ["credits", "Crédits"]].map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <div id="tabBody"></div>
     </div>
   </div>`;
@@ -412,6 +421,18 @@ function drawTab() {
     $$("[data-seek]").forEach(el => el.onclick = () => { seek(+el.dataset.seek + 0.05); selectShot(+el.parentElement.dataset.i); });
     $$("[data-rm]").forEach(el => el.onclick = () => editShot(+el.dataset.rm, {action: "remove"}));
     $$("[data-add]").forEach(el => el.onclick = () => openPicker(+el.dataset.add));
+  } else if (tab === "hook") {
+    const v = S.virality, parts = v?.parts || {};
+    b.innerHTML = `<div style="display:grid;gap:20px">
+      <div class="panel pad" style="display:grid;gap:10px"><span class="eyebrow">Titre d'accroche (3 premières secondes)</span>
+        <p class="hint" style="margin:0">Le texte en haut de l'écran qui donne envie de rester. 3 à 8 mots, une question ou une promesse que la vidéo tient. Vide = aucun titre.</p>
+        <div class="row"><input type="text" id="hookIn" value="${esc(S.hook || "")}" maxlength="90" placeholder="Ex. : Pourquoi les Américains ont raison" style="flex:1"><button class="btn primary" id="hookSave">Appliquer</button></div>
+        <p class="hint" style="margin:0">${S.teaser ? `Cold open : la vidéo commence par une phrase forte de ${S.teaser.toFixed(1)} s, puis l'histoire reprend du début.` : "Pas de cold open : la première phrase est déjà la plus forte."} La fin est montée pour boucler.</p></div>
+      ${v ? `<div class="panel pad score"><div class="big ${vclass(v.total)}"><b>${v.total}</b><span class="muted">/ 100 · score de viralité estimé${v.claude != null ? ` (dont avis de Claude : ${v.claude})` : ""}</span></div>
+        ${Object.entries(S.labels).filter(([k]) => k in parts).map(([k, l]) => `<div class="row2"><span>${esc(l)}</span><div class="bar"><i style="width:${Math.round(parts[k] * 100)}%"></i></div><span class="mono muted">${Math.round(parts[k] * 10)}/10</span></div>`).join("")}
+        <p class="hint" style="margin:0">Estimation à partir du texte et de la voix — utile pour choisir quel Short publier en premier, pas une garantie de vues.</p></div>` : ""}</div>`;
+    const save = async () => { try { S = await api(`/api/shorts/${encodeURIComponent(S.slug)}/${S.n}/hook`, {method: "POST", body: JSON.stringify({text: $("#hookIn").value})}); drawDirty(); toast("Accroche modifiée — pensez à re-rendre"); } catch (e) { toast(e.message, true); } };
+    $("#hookSave").onclick = save; $("#hookIn").onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); save(); } };
   } else if (tab === "caps") {
     b.innerHTML = `<p class="hint" style="margin-top:0">Corrigez un mot ou une faute : Entrée pour valider. Le timing est conservé, puis re-rendez le Short.</p>
       <div class="caps">${S.chunks.map((c, k) => `<div class="cap" data-s="${c.start}" data-e="${c.end}"><span class="mono muted" style="cursor:pointer" data-cseek="${c.start}">${fmtT(c.start)}</span>
@@ -531,12 +552,17 @@ async function viewSettings() {
   <div class="grid2"><div style="display:grid;gap:20px">
     <div class="panel pad" style="display:grid;gap:14px"><h2>Montage</h2><div class="fields">
       <label class="f">Marque (filigrane) — « | » sépare les deux couleurs<input type="text" id="s_brand" value="${esc(c.brand)}" placeholder="WILD|FRAME"></label>
-      <label class="f">Shorts par vidéo<input type="number" id="s_count" min="1" max="6" value="${c.count}"></label>
+      <label class="f">Shorts par vidéo<select id="s_count">${[[0, "Auto (selon la durée, classés par viralité)"], 1, 2, 3, 4, 5, 6, 8].map(o => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${v}" ${(+c.count || 0) === v ? "selected" : ""}>${l}</option>`; }).join("")}</select></label>
       <label class="f">Durée min. (s)<input type="number" id="s_min" value="${c.min_dur}"></label><label class="f">Durée max. (s)<input type="number" id="s_max" value="${c.max_dur}"></label>
       <label class="f">Durée visée (s)<input type="number" id="s_target" value="${c.target_dur}"></label>
       <label class="f">Transcription<select id="s_model">${["small", "medium", "large-v3"].map(m => `<option ${c.whisper_model === m ? "selected" : ""}>${m}</option>`).join("")}</select></label>
       <label class="f">Choix de l'histoire par Claude<select id="s_llm">${[["auto", "Auto (si clé)"], ["on", "Toujours"], ["off", "Jamais"]].map(([v, l]) => `<option value="${v}" ${c.llm === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <label class="f">Langue<input type="text" id="s_lang" value="${esc(c.language || "")}" placeholder="auto"></label></div></div>
+    <div class="panel pad" style="display:grid;gap:12px"><h2>Rétention (viralité)</h2>
+      <label class="switch"><input type="checkbox" id="s_hook" ${c.hook_title !== "off" ? "checked" : ""}>Titre d'accroche à l'écran pendant les 3 premières secondes</label>
+      <label class="switch"><input type="checkbox" id="s_cold" ${c.cold_open ? "checked" : ""}>Cold open : commencer par la phrase la plus forte, puis l'histoire</label>
+      <label class="switch"><input type="checkbox" id="s_loop" ${c.loop_ending ? "checked" : ""}>Fin en boucle (pas de fondu final : la vidéo repart naturellement)</label>
+      <label class="f">Score minimum en mode Auto <span class="mono" id="v_mv">${c.min_virality}</span><input type="range" id="s_mv" min="0" max="80" step="5" value="${c.min_virality}"></label></div>
     <div class="panel pad" style="display:grid;gap:14px"><h2>Image et son</h2><div class="fields">
       <label class="f">Intensité du look (LUT) <span class="mono" id="v_lut">${Math.round(c.lut_mix * 100)} %</span><input type="range" id="s_lut" min="0" max="1" step="0.05" value="${c.lut_mix}"></label>
       <label class="f">Netteté <span class="mono" id="v_sh">${c.sharpen}</span><input type="range" id="s_sh" min="0" max="1.5" step="0.1" value="${c.sharpen}"></label>
@@ -560,13 +586,16 @@ async function viewSettings() {
   $("#s_lut").oninput = e => $("#v_lut").textContent = Math.round(e.target.value * 100) + " %";
   $("#s_sh").oninput = e => $("#v_sh").textContent = e.target.value;
   $("#s_mu").oninput = e => $("#v_mu").textContent = e.target.value + " dB";
+  $("#s_mv").oninput = e => $("#v_mv").textContent = e.target.value;
   const clear = new Set();
   $$("[data-clear]").forEach(b => b.onclick = () => { clear.add(b.dataset.clear); b.textContent = "Sera effacée"; b.disabled = true; });
   $("#save").onclick = async () => {
     const keys = {}; ["pexels", "pixabay", "anthropic"].forEach(id => { const v = $("#k_" + id).value.trim(); if (v) keys[id] = v; else if (clear.has(id)) keys[id] = ""; });
     const config = {brand: $("#s_brand").value.trim(), count: +$("#s_count").value, min_dur: +$("#s_min").value, max_dur: +$("#s_max").value, target_dur: +$("#s_target").value,
       whisper_model: $("#s_model").value, llm: $("#s_llm").value, language: $("#s_lang").value.trim() || null, lut_mix: +$("#s_lut").value, sharpen: +$("#s_sh").value,
-      music_db_under_voice: +$("#s_mu").value, photo_fallback: $("#s_photos").checked, broll_sources: order.filter(s => on.has(s))};
+      music_db_under_voice: +$("#s_mu").value, photo_fallback: $("#s_photos").checked, broll_sources: order.filter(s => on.has(s)),
+      hook_title: $("#s_hook").checked ? (c.hook_title === "off" ? "auto" : c.hook_title) : "off", cold_open: $("#s_cold").checked,
+      loop_ending: $("#s_loop").checked, min_virality: +$("#s_mv").value};
     try { SETTINGS = await api("/api/settings", {method: "PUT", body: JSON.stringify({config, keys})}); toast("Réglages enregistrés"); viewSettings(); } catch (e) { toast(e.message, true); }
   };
 }

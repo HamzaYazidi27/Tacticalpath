@@ -7,6 +7,7 @@ import os
 import numpy as np
 
 from . import language as L
+from . import viral
 from .util import log
 
 
@@ -89,6 +90,9 @@ SCHEMA = {
                     "start_sentence": {"type": "integer"},
                     "end_sentence": {"type": "integer"},
                     "title": {"type": "string"},
+                    "hook": {"type": "string"},
+                    "virality": {"type": "integer"},
+                    "teaser_sentence": {"type": "integer"},
                     "why": {"type": "string"},
                     "broll": {
                         "type": "array",
@@ -104,7 +108,7 @@ SCHEMA = {
                         },
                     },
                 },
-                "required": ["start_sentence", "end_sentence", "title", "why", "broll"],
+                "required": ["start_sentence", "end_sentence", "title", "hook", "virality", "teaser_sentence", "why", "broll"],
                 "additionalProperties": False,
             },
         }
@@ -128,6 +132,12 @@ A good clip:
 For each clip list 6–20 B-roll moments: the sentence number, the exact word in that sentence the picture should land on,
 and a short English stock-footage search query (2–4 words, concrete and filmable, e.g. "octopus squeezing through gap").
 Write the title like a Shorts title: a concrete oddity, under 60 characters, in the transcript's language.
+"hook": the text shown big on screen during the first 3 seconds — 3 to 8 words, in the transcript's language, a
+curiosity gap that makes people stay (e.g. "Why Americans got it right"), never clickbait the clip doesn't pay off.
+"virality": your 0–100 estimate of how well this clip would retain viewers and get shared.
+"teaser_sentence": the number of one short, striking sentence from the middle of the clip worth playing first as a
+cold open (1–3 seconds, not the final payoff line), or -1 if the opening line is already the strongest.
+Order the clips best first.
 
 Transcript:
 {transcript}"""
@@ -189,22 +199,54 @@ def llm_rerank(words, sents, cfg, n):
                 if L.bare(words[k]["word"]) == target:
                     q[k] = m["query"]
                     break
+        ts = int(c.get("teaser_sentence", -1))
+        tz = None
+        if a < ts < b:
+            td = est_out(words, sents[ts]["i0"], sents[ts]["i1"], cfg.gap_trim)
+            if 0.8 <= td <= 3.2 and d + td <= cfg.max_dur + 1:
+                tz = [sents[ts]["i0"], sents[ts]["i1"]]
         clips.append({"s0": a, "s1": b, "start": sents[a]["start"], "end": sents[b]["end"], "dur": round(d, 2),
                       "score": None, "title": c["title"], "why": c.get("why", ""), "queries": q, "source": "claude",
-                      "priority": list(q.keys())})
+                      "priority": list(q.keys()), "hook": str(c.get("hook", "")).strip(),
+                      "llm_virality": c.get("virality"), "teaser": tz})
     log(f"llm: Claude proposed {len(clips)} clip(s)")
     return non_overlapping(clips, n) or None
 
 
 def select(words, cfg, env_db=None):
     sents = L.sentences(words)
-    n = max(1, cfg.count)
+    auto = cfg.count <= 0
+    n = viral.auto_count(est_out(words, 0, len(words) - 1, cfg.gap_trim), cfg) if auto else cfg.count
+    if auto:
+        log(f"count: auto → up to {n} Short(s) for this recording")
     clips = llm_rerank(words, sents, cfg, n)
     if not clips:
         clips = non_overlapping(candidates(words, sents, cfg, env_db), n)
         for c in clips:
             c["source"] = "heuristic"
             c["title"] = sents[c["s0"]]["text"][:70]
+    for c in clips:                                  # retention layer: score, cold open, on-screen hook
+        v = viral.score(words, sents, c["s0"], c["s1"], c["dur"], cfg, env_db)
+        if c.get("llm_virality") is not None:
+            v["claude"] = int(c["llm_virality"])
+            v["total"] = int(round(0.6 * v["claude"] + 0.4 * v["total"]))
+        c["virality"] = v
+        if "teaser" not in c:
+            c["teaser"] = viral.teaser(words, sents, c["s0"], c["s1"], c["dur"], cfg, est_out)
+        if not cfg.cold_open:
+            c["teaser"] = None
+        if cfg.hook_title == "off":
+            c["hook"] = ""
+        elif cfg.hook_title not in ("", "auto"):
+            c["hook"] = cfg.hook_title
+        elif not c.get("hook"):
+            c["hook"] = viral.hook_text(sents, c["s0"], c["s1"], c["teaser"])
+    clips.sort(key=lambda c: -c["virality"]["total"])           # Short 1 = the most promising
+    if auto and len(clips) > 1:
+        keep = [c for c in clips if c["virality"]["total"] >= cfg.min_virality]
+        if len(keep) < len(clips):
+            log(f"virality: {len(clips) - len(keep)} weak clip(s) dropped (score < {cfg.min_virality})")
+        clips = keep or clips[:1]
     for c in clips:  # fill keyword queries for anything Claude didn't cover
         i0, i1 = sents[c["s0"]]["i0"], sents[c["s1"]]["i1"]
         c["i0"], c["i1"] = i0, i1

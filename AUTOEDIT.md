@@ -107,8 +107,10 @@ Les fichiers de travail sont dans `workspace/` : vos vidéos envoyées, les Shor
 **Plusieurs Shorts d'un long podcast, avec votre marque :**
 
 ```bash
-python -m autoedit episode.mp4 --count 3 --brand "WILD|FRAME"
+python -m autoedit episode.mp4 --brand "WILD|FRAME"
 ```
+
+Par défaut (`--count 0`, « Auto »), le système vise environ un Short par 75 s de parole, jusqu'à 8. Il élimine les passages faibles (score < 45) et numérote les Shorts du plus prometteur au moins prometteur. Utilisez `--count 3` pour en imposer 3.
 
 Le `|` indique où la marque change de couleur : `WILD` en blanc, `FRAME` en vert.
 
@@ -162,16 +164,27 @@ Tous les crédits sont écrits dans `*_credits.txt` : copiez-les dans la descrip
 
 **Optionnel, Claude :** avec `export ANTHROPIC_API_KEY=...`, Claude choisit l'histoire la plus forte, écrit le titre et formule des recherches B-roll plus précises.
 
+## Rétention : pensé pour les vidéos virales
+
+Les plateformes poussent les Shorts que les gens regardent jusqu'au bout et revoient. Chaque Short reçoit donc automatiquement :
+
+- **Un score de viralité (0–100)**, détaillé en 7 critères : accroche, chute, compréhensible seul, visuel, rythme, énergie de la voix, boucle. Avec une clé Claude, son avis compte pour 60 % du score. Le fichier `<nom>_ranking.md` indique dans quel ordre publier. C'est une estimation à partir du texte et de la voix, pas une garantie de vues.
+- **Un titre d'accroche à l'écran pendant les 3 premières secondes.** Il est blanc, avec le mot clé sur une pastille verte, et il apparaît aussi sur la couverture. On peut le modifier dans le Studio (onglet « Accroche & score »), l'imposer avec `--hook "Votre texte"` ou le désactiver avec `--hook off`.
+- **Un cold open** quand une phrase plus loin dans le passage est nettement plus forte que la première. Cette phrase (1 à 3,6 s) passe en premier, en plan serré. Une coupe franche avec un « whoosh » ramène ensuite au début de l'histoire. Pour le désactiver : `--no-cold-open`.
+- **Une image 1 qui accroche** : un léger punch-out sur la personne qui parle, avec un « hit » sonore.
+- **Une fin en boucle** : pas de fondu final sur la musique, et un dernier plan serré qui s'enchaîne naturellement avec le premier. La vidéo repart sans « fin ». Pour revenir à une fin classique : `--no-loop`.
+
 ## Ce que vous recevez (dans `outbox/<nom>/`)
 
 | Fichier | Contenu |
 |---|---|
 | `<nom>_short1.mp4` | Le Short final : 1080×1920, 30 fps, H.264, AAC 320 k, −14 LUFS |
-| `<nom>_short1_cover.jpg` | Image de couverture avec sous-titre |
+| `<nom>_short1_cover.jpg` | Image de couverture avec le titre d'accroche |
 | `<nom>_short1.srt` | Sous-titres (pour les traductions et l'accessibilité) |
 | `<nom>_short1_report.md` / `_qc.json` | Contrôle qualité : durée, coupes/min, part de B-roll, position des sous-titres, loudness, true peak |
 | `<nom>_short1_edl.json` | Le plan de montage complet, plan par plan, pour retoucher à la main si besoin |
 | `<nom>_short1_credits.txt` | Crédits et licences de chaque B-roll, prêts à coller dans la description |
+| `<nom>_ranking.md` | Les Shorts classés par score de viralité, avec le titre d'accroche de chacun : l'ordre de publication conseillé |
 
 ## Réglages
 

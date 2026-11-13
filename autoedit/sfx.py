@@ -36,6 +36,15 @@ def impact(length: float = 0.6) -> np.ndarray:
     return (y / np.abs(y).max()).astype(np.float32)
 
 
+def hit(length: float = 0.32) -> np.ndarray:
+    """Short bright transient for frame 1: snap of noise + a quick pitched drop (grabs attention, no boom)."""
+    t = np.arange(int(SR * length)) / SR
+    snap = np.random.default_rng(7).standard_normal(len(t)) * np.exp(-t / 0.008)
+    tone = np.sin(2 * np.pi * (220 * np.exp(-t / 0.06) + 60) * t) * np.exp(-t / 0.09)
+    y = 0.6 * snap + tone
+    return (y / np.abs(y).max()).astype(np.float32)
+
+
 def track(duration: float, events: list[tuple[float, str]], whoosh_db: float = -14.0, impact_db: float = -10.0) -> np.ndarray:
     """Build a mono SFX track. events: (time_of_cut, 'whoosh'|'impact')."""
     out = np.zeros(int(SR * (duration + 1.0)), dtype=np.float32)
@@ -45,6 +54,8 @@ def track(duration: float, events: list[tuple[float, str]], whoosh_db: float = -
         if kind == "whoosh":
             s = int((t - 0.38) * SR)
             snd = whoosh(seed=i) * 10 ** (whoosh_db / 20) if i % 3 else w
+        elif kind == "hit":
+            s, snd = int(t * SR), hit() * 10 ** ((impact_db - 3) / 20)
         else:
             s, snd = int(t * SR), imp
         s = max(0, s)

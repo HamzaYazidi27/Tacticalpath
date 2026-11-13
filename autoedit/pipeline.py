@@ -51,6 +51,9 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
         plans = []
         for n, clip in enumerate(clips, 1):
             log(f"clip {n}: {clip['start']:.1f}–{clip['end']:.1f}s ({clip['dur']:.0f}s, {clip['source']}) «{clip['title'][:60]}»")
+            v = clip.get("virality") or {}
+            log(f"virality {n}: {v.get('total', '?')}/100 · hook «{clip.get('hook', '')}»"
+                + (" · cold open" if clip.get("teaser") else ""))
             needed = int(clip["dur"] * cfg.broll_share / 1.3) + 3   # what the edit can actually place
             found, generic = broll.resolve(clip["queries"], cfg, out_root / "_broll_cache", src, scenes, clip, needed)
             p = planner.plan(words, clip, found, generic, cfg)
@@ -74,10 +77,30 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
         if dry_run:
             continue
         outputs.append(render_one(p, out_dir, cfg, info))
+    if clips and clips[0] is not None and plans:
+        write_ranking(out_dir, name, plans)
     if not keep_work and not dry_run:
         for d in work.glob("clip*/shots"):
             shutil.rmtree(d, ignore_errors=True)
     return outputs
+
+
+def write_ranking(out_dir: Path, name: str, plans: list[dict]):
+    """One page that says which Short to post first, and why."""
+    from .viral import LABELS
+    lines = [f"# {name} — Shorts ranked by virality score", "",
+             "Post them in this order. The score is an estimate from the transcript and the voice "
+             "(hook, payoff, pace, things to show, energy, loop) — not a promise of views.", "",
+             "| # | Score | Hook (first seconds) | Title | Duration |", "|---|---|---|---|---|"]
+    for k, p in enumerate(plans, 1):
+        v = p.get("virality") or {}
+        lines.append(f"| {k} | **{v.get('total', '–')}** | {p.get('hook') or '–'} | {p.get('title', '')[:60]} | {p['duration']:.0f} s |")
+    lines.append("")
+    for k, p in enumerate(plans, 1):
+        parts = (p.get("virality") or {}).get("parts") or {}
+        if parts:
+            lines.append(f"**Short {k}:** " + " · ".join(f"{LABELS[x]} {round(parts[x] * 10)}/10" for x in LABELS if x in parts))
+    (out_dir / f"{name}_ranking.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def render_one(p: dict, out_dir: Path, cfg, info: dict | None = None) -> Path:
@@ -101,7 +124,7 @@ def render_one(p: dict, out_dir: Path, cfg, info: dict | None = None) -> Path:
     tmp.replace(final)
     shutil.copy(cw / "captions.srt", out_dir / f"{name}_short{n}.srt")
     first_b = next((s["t0"] for s in p["shots"] if s["kind"] == "B"), 1.0)
-    render.cover(final, first_b + 0.3, out_dir / f"{name}_short{n}_cover.jpg")
+    render.cover(final, first_b + 0.3, out_dir / f"{name}_short{n}_cover.jpg", cw / "hook.png" if p.get("hook") else None)
     credits = sorted({s["asset"]["credit"] for s in p["shots"] if s["kind"] == "B" and s["asset"].get("credit")})
     (out_dir / f"{name}_short{n}_credits.txt").write_text(
         ("B-roll credits:\n" + "\n".join(credits) + "\n") if credits else "No third-party B-roll used.\n", encoding="utf-8")

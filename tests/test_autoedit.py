@@ -119,9 +119,6 @@ class TestBrollAndBrand(unittest.TestCase):
         self.assertEqual(brand_split("WildFrame"), ("WildFrame", 4))
 
 
-if __name__ == "__main__":
-    unittest.main()
-
 
 class TestSocialSources(unittest.TestCase):
     def test_license_filter(self):
@@ -269,3 +266,71 @@ class TestFfmpegCompat(unittest.TestCase):
                 os.environ.pop("AUTOEDIT_FFMPEG_MAJOR", None)
                 self.assertEqual(util.filter_file_args("f.txt")[0], flag, banner)
         util._FFMAJOR = None
+
+
+TEASE = ("So I was diving off the coast near the island last summer. The water was calm and very clear. "
+         "We dropped the cage next to the boat around noon. Then the biggest shark in the world attacked our cage! "
+         "It circled the cage three times and bumped the bars. My friend was filming the whole thing with his camera. "
+         "After a while it just swam back into the deep blue water. We went home and could not sleep that night.")
+
+
+class TestRetention(unittest.TestCase):
+    def test_virality_score_range_and_order(self):
+        from autoedit import viral
+        w = fake_words()
+        sents = L.sentences(w)
+        cfg = Config(min_dur=15, max_dur=40, target_dur=25)
+        good = viral.score(w, sents, 0, 8, 25, cfg)
+        dull = viral.score(w, sents, 9, 10, 25, cfg)
+        self.assertTrue(0 <= dull["total"] <= 100 and 0 <= good["total"] <= 100)
+        self.assertGreater(good["total"], dull["total"])
+        self.assertEqual(set(good["parts"]), set(viral.PARTS))
+
+    def test_cold_open_teaser_plays_first(self):
+        w = fake_words(TEASE)
+        cfg = Config(min_dur=26, max_dur=40, target_dur=30, llm="off")     # forces the whole story: weak first line
+        clips, sents = selector.select(w, cfg)
+        c = clips[0]
+        self.assertIsNotNone(c["teaser"], "the shark line should be used as a cold open")
+        p = planner.plan(w, c, {}, [], cfg)
+        tD = p["stats"]["teaser"]
+        self.assertGreater(tD, 0.8)
+        self.assertEqual(L.bare(p["words"][0]["word"]), L.bare(w[c["teaser"][0]]["word"]))   # teaser line first
+        self.assertTrue(p["shots"][0].get("intro"))
+        for s in p["shots"]:
+            if s["t1"] <= tD + 1e-3:
+                self.assertEqual(s["kind"], "A")
+        self.assertTrue(any(abs(s["t0"] - tD) < 1e-3 for s in p["shots"]))                 # hard cut into the story
+        for a, b in zip(p["shots"], p["shots"][1:]):
+            self.assertAlmostEqual(a["t1"], b["t0"], places=3)
+        self.assertAlmostEqual(p["shots"][-1]["t1"], p["duration"], places=3)
+
+    def test_auto_count_ranks_by_virality(self):
+        w = fake_words(" ".join([TEASE, STORY.replace("Anyway, let's talk about something else.", ""), TEASE, STORY,
+                                 TEASE.replace("shark", "whale")]))
+        cfg = Config(min_dur=15, max_dur=35, target_dur=25, llm="off", min_virality=0)
+        clips, _ = selector.select(w, cfg)
+        self.assertGreaterEqual(len(clips), 2)
+        totals = [c["virality"]["total"] for c in clips]
+        self.assertEqual(totals, sorted(totals, reverse=True))
+        self.assertTrue(all(c["hook"] for c in clips))
+
+    def test_hook_off_and_custom(self):
+        w = fake_words()
+        clips, _ = selector.select(w, Config(min_dur=15, max_dur=40, target_dur=25, llm="off", hook_title="off"))
+        self.assertEqual(clips[0]["hook"], "")
+        clips, _ = selector.select(w, Config(min_dur=15, max_dur=40, target_dur=25, llm="off", hook_title="Sharks fear whales"))
+        self.assertEqual(clips[0]["hook"], "Sharks fear whales")
+
+    def test_hook_card_png(self):
+        from autoedit import render
+        from PIL import Image
+        out = Path("/tmp/_ae_hook.png")
+        render.hook_card("Why a shark ran from 1 whale", out)
+        im = Image.open(out)
+        self.assertEqual(im.size[0], 1080)
+        self.assertGreater(im.getbbox()[3] - im.getbbox()[1], 60)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -368,6 +368,7 @@ def shorts():
             continue
         res.append({"slug": slug, "n": n, "title": d.get("title") or slug, "duration": d.get("duration"),
                     "stats": d.get("stats", {}), "rendered": mp4.exists(), "qc_pass": qcd and qcd.get("pass"),
+                    "virality": (d.get("virality") or {}).get("total"), "hook": d.get("hook", ""),
                     "mtime": (mp4 if mp4.exists() else e).stat().st_mtime,
                     "cover": f"/media/outbox/{slug}/{slug}_short{n}_cover.jpg?v={int(e.stat().st_mtime)}"})
     return sorted(res, key=lambda r: -r["mtime"])
@@ -383,6 +384,11 @@ def chunks_of(words: list[dict]) -> list[dict]:
         out.append({"start": round(s, 2), "end": round(e, 2), "i0": idx[0], "i1": idx[-1],
                     "text": " ".join(mc.clean(w["word"], True) for w in c)})
     return out
+
+
+def viral_labels() -> dict:
+    from autoedit.viral import LABELS
+    return LABELS
 
 
 @app.get("/api/shorts/{slug}/{n}")
@@ -406,7 +412,9 @@ def short(slug: str, n: int):
             "qc": json.loads(qc.read_text()) if qc.exists() else None,
             "credits": cr.read_text(encoding="utf-8") if cr.exists() else "",
             "video": f"{base}.mp4?v={v}" if mp4.exists() else None, "srt": f"{base}.srt", "cover": f"{base}_cover.jpg?v={v}",
-            "final_path": str(mp4), "dirty": d.get("dirty", False)}
+            "final_path": str(mp4), "dirty": d.get("dirty", False),
+            "hook": d.get("hook", ""), "virality": d.get("virality"), "teaser": (d.get("stats") or {}).get("teaser", 0),
+            "labels": viral_labels()}
 
 
 @app.post("/api/shorts/{slug}/{n}/shot/{i}")
@@ -460,6 +468,18 @@ async def edit_caption(slug: str, n: int, req: Request):
     step = (t1 - t0) / len(toks)
     new = [{"word": w, "start": round(t0 + j * step, 3), "end": round(t0 + (j + 1) * step, 3)} for j, w in enumerate(toks)]
     d["words"][c["i0"]:c["i1"] + 1] = new
+    d["dirty"] = True
+    e.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
+    return short(slug, n)
+
+
+@app.post("/api/shorts/{slug}/{n}/hook")
+async def edit_hook(slug: str, n: int, req: Request):
+    """On-screen hook title of the first seconds (empty = none)."""
+    b = await req.json()
+    e = edl_path(slug, n)
+    d = json.loads(e.read_text(encoding="utf-8"))
+    d["hook"] = " ".join(str(b.get("text", "")).split())[:90]
     d["dirty"] = True
     e.write_text(json.dumps(d, ensure_ascii=False, indent=1), encoding="utf-8")
     return short(slug, n)
@@ -568,6 +588,7 @@ def library_delete(kind: str, name: str):
 
 # ------------------------------------------------------------------ settings
 EDITABLE = ["brand", "count", "min_dur", "max_dur", "target_dur", "whisper_model", "language", "llm",
+            "cold_open", "loop_ending", "hook_title", "min_virality",
             "broll_sources", "photo_fallback", "music_db_under_voice", "lut_mix", "sharpen", "montage_dur"]
 
 

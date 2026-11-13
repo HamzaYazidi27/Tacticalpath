@@ -64,7 +64,12 @@ def run(final, plan, cfg) -> dict:
     chk("cuts per minute (edit)", st["cuts_per_min"] >= 45, st["cuts_per_min"], ">= 45 (style >= 49)")
     chk("cuts per minute (detected in render)", True, round(detected, 1), "info: punch-ins on the same take are not always detected")
     chk("b-roll share", st["broll_share"] >= 0.35 or plan.get("mode") == "montage", st["broll_share"], "0.55-0.77 (>= 0.35 to pass)")
-    chk("first b-roll", st["first_broll_at"] is not None and st["first_broll_at"] <= 2.0, st["first_broll_at"], "<= 1.2 s ideal")
+    lim = 2.0 + (st.get("teaser") or 0)
+    chk("first b-roll", st["first_broll_at"] is not None and st["first_broll_at"] <= lim, st["first_broll_at"],
+        "<= 1.2 s ideal" + (f" (after the {st['teaser']:.1f} s cold open)" if st.get("teaser") else ""))
+    if plan.get("mode") != "montage":
+        chk("hook title (first seconds)", True, plan.get("hook") or "none", "info: short curiosity line on screen")
+        chk("cold open", True, f"{st['teaser']:.1f} s" if st.get("teaser") else "no", "info: strongest line first")
     if plan.get("mode") != "montage" or cfg.montage_text:
         chk("captions present", cap is not None and cap["frames_with_caption"] >= cap["of"] * 0.8,
             cap and f"{cap['frames_with_caption']}/{cap['of']}", ">= 80 % of sampled frames")
@@ -82,4 +87,9 @@ def markdown(report: dict, plan: dict, title: str) -> str:
         lines.append(f"| {c['check']} | {c['value']} | {c['target']} | {'✅' if c['ok'] else '⚠️'} |")
     s = plan["stats"]
     lines += ["", f"Shots: {s['shots']} · duration {s['duration']:.1f} s · B-roll {s['broll_share'] * 100:.0f} %", ""]
+    v = plan.get("virality")
+    if v:
+        from .viral import LABELS
+        lines += [f"**Virality score: {v['total']}/100**" + (f" (Claude: {v['claude']})" if "claude" in v else ""), "",
+                  " · ".join(f"{LABELS[k]} {round(x * 10)}/10" for k, x in v.get("parts", {}).items()), ""]
     return "\n".join(lines)

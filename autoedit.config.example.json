@@ -1,6 +1,10 @@
 {
   "brand": "YOUR|BRAND",
-  "count": 1,
+  "count": 0,
+  "min_virality": 45,
+  "hook_title": "auto",
+  "cold_open": true,
+  "loop_ending": true,
   "min_dur": 30,
   "max_dur": 60,
   "target_dur": 45,

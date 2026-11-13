@@ -16,7 +16,13 @@ class Config:
     min_dur: float = 30.0            # seconds
     max_dur: float = 60.0
     target_dur: float = 45.0
-    count: int = 1                   # number of Shorts to cut from one input
+    count: int = 0                   # Shorts per input; 0 = auto (≈ one per 75 s of talk, weak clips dropped)
+    min_virality: int = 45           # auto mode keeps clips scoring at least this (0–100)
+    # --- retention
+    cold_open: bool = True           # play a striking line from later first (flash-forward), when one exists
+    hook_title: str = "auto"         # on-screen title for the first seconds: auto | off | your own text
+    hook_secs: float = 2.8
+    loop_ending: bool = True         # ending flows back into the start (no fade-out, matched framing)
     # --- transcription
     whisper_model: str = "small"     # tiny | base | small | medium | large-v3
     language: str | None = None      # None = auto-detect

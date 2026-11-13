@@ -71,11 +71,19 @@ def _next_word_start(ow, t):
 
 def plan(words, clip, found, generic, cfg):
     isl, D = islands(words, clip["i0"], clip["i1"], cfg.gap_trim)
+    tD = 0.0
+    if clip.get("teaser"):                  # cold open: the striking line first, then the story from the top
+        t_isl, tD = islands(words, clip["teaser"][0], clip["teaser"][1], cfg.gap_trim)
+        for i in isl:
+            i["out_start"] = round(i["out_start"] + tD, 4)
+        isl, D = t_isl + isl, _q(D + tD)
     ow = remap_words(words, isl)
     by_src = {w["src_idx"]: w for w in ow}
     lead = 2 / FPS
     end_limit = D - cfg.end_on_speaker
     min_start = max(0.8, cfg.first_broll_by - 0.35)
+    if tD:
+        min_start = tD + 0.6                # the teaser stays on the speaker; B-roll starts with the story
 
     # --- 1. B-roll shots from keyword anchors
     anchors = sorted((by_src[k]["start"], k) for k in found if k in by_src)
@@ -173,6 +181,9 @@ def plan(words, clip, found, generic, cfg):
             pi += 1
             cur = cut
 
+    if tD:
+        add_a(0.0, tD)                      # forced cut where the story starts
+        t = tD
     for s in final_b:
         if s["t0"] - t > 1e-3:
             add_a(t, s["t0"])
@@ -186,6 +197,13 @@ def plan(words, clip, found, generic, cfg):
         shots[a_idx[-1]]["zoom"] = max(cfg.punch_scales)
         if len(a_idx) > 1 and a_idx[-2] == a_idx[-1] - 1:
             shots[a_idx[-2]]["zoom"] = min(cfg.punch_scales)      # keep the jump visible
+    if tD:                                  # teaser tight, story opens wide: the jump reads as "rewind"
+        for s in shots:
+            if s["kind"] == "A" and s["t1"] <= tD + 1e-3:
+                s.update(zoom=max(cfg.punch_scales), teaser=True)
+        nxt = next((s for s in shots if s["kind"] == "A" and s["t0"] >= tD - 1e-3), None)
+        if nxt:
+            nxt["zoom"] = min(cfg.punch_scales)
     # merge micro shots (< 0.35 s) into their predecessor
     merged = []
     for s in shots:
@@ -194,6 +212,8 @@ def plan(words, clip, found, generic, cfg):
         else:
             merged.append(s)
     shots = merged
+    if shots and shots[0]["kind"] == "A":
+        shots[0]["intro"] = True            # frame 1: quick punch-out on the speaker (hook energy)
 
     # --- 5. asset in-points (don't reuse the same source range twice)
     used = {}
@@ -218,8 +238,9 @@ def plan(words, clip, found, generic, cfg):
         "duration": D, "shots": len(shots), "cuts_per_min": round(n_cuts / D * 60, 1) if D else 0,
         "broll_share": round(sum(s["t1"] - s["t0"] for s in shots if s["kind"] == "B") / max(D, 1e-6), 3),
         "first_broll_at": next((s["t0"] for s in shots if s["kind"] == "B"), None),
+        "teaser": tD,
         "jump_cuts_removed_s": round(sum(words[k]["end"] - words[k]["start"] for k in range(clip["i0"], clip["i1"] + 1)
                                          if L.bare(words[k]["word"]) in L.FILLERS), 2),
     }
     return {"duration": D, "islands": isl, "words": ow, "shots": shots, "stats": stats,
-            "title": clip.get("title", ""), "clip": {k: clip[k] for k in ("start", "end", "dur", "source") if k in clip}}
+            "title": clip.get("title", ""), "hook": clip.get("hook", ""), "virality": clip.get("virality"), "clip": {k: clip[k] for k in ("start", "end", "dur", "source") if k in clip}}

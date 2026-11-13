@@ -47,6 +47,12 @@ def build_cfg(a) -> Config:
         cfg.online_broll = False
     if a.text:
         cfg.montage_text = a.text
+    if a.hook:
+        cfg.hook_title = a.hook
+    if a.no_cold_open:
+        cfg.cold_open = False
+    if a.no_loop:
+        cfg.loop_ending = False
     return cfg
 
 
@@ -90,7 +96,11 @@ def main(argv=None):
     ap.add_argument("--vision", choices=["auto", "on", "off"], help="CLIP visual check of B-roll (auto = if installed)")
     ap.add_argument("--no-photos", action="store_true", help="video B-roll only: never fall back to a photo")
     ap.add_argument("--brand", help="watermark text locked under the captions")
-    ap.add_argument("--count", type=int, help="number of Shorts to cut from each input (default 1)")
+    ap.add_argument("--count", type=int, help="Shorts per input; 0 = auto, ranked by virality score (default 0)")
+    ap.add_argument("--hook", help="on-screen hook title for the first seconds: your text, 'auto' (default) or 'off'")
+    ap.add_argument("--no-cold-open", action="store_true", dest="no_cold_open",
+                    help="never open on a line from later in the clip")
+    ap.add_argument("--no-loop", action="store_true", dest="no_loop", help="classic ending (music fades out)")
     ap.add_argument("--min-dur", type=float, dest="min_dur")
     ap.add_argument("--max-dur", type=float, dest="max_dur")
     ap.add_argument("--target", type=float, help="preferred duration in seconds (default 45)")
