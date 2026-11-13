@@ -63,13 +63,45 @@ def probe(path: Path) -> dict:
     return info
 
 
+EXTRA_PATHS = ["/opt/homebrew/bin", "/usr/local/bin", "/opt/local/bin", "/snap/bin",
+               str(Path.home() / ".deno" / "bin"), r"C:\ffmpeg\bin", r"C:\Program Files\ffmpeg\bin"]
+
+
+def fix_path() -> None:
+    """Apps started by double-click (Finder, Explorer) often miss Homebrew/winget folders in PATH."""
+    import os
+    cur = os.environ.get("PATH", "").split(os.pathsep)
+    add = [d for d in EXTRA_PATHS if Path(d).is_dir() and d not in cur]
+    local = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft" / "WinGet" / "Links"
+    if os.environ.get("LOCALAPPDATA") and local.is_dir() and str(local) not in cur:
+        add.append(str(local))
+    if add:
+        os.environ["PATH"] = os.pathsep.join(cur + add)
+
+
+fix_path()
+_LIBASS = None
+
+
+def has_libass() -> bool:
+    """True when ffmpeg can burn ASS captions. Without it captions are drawn in Python instead."""
+    global _LIBASS
+    import os
+    if os.environ.get("AUTOEDIT_NO_LIBASS"):
+        return False
+    if _LIBASS is None:
+        p = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True)
+        _LIBASS = " ass " in p.stdout
+    return _LIBASS
+
+
 def check_tools() -> None:
     missing = [t for t in ("ffmpeg", "ffprobe") if not shutil.which(t)]
     if missing:
-        sys.exit(f"Missing required tools: {', '.join(missing)} — install ffmpeg (with libass).")
-    p = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True)
-    if " ass " not in p.stdout:
-        sys.exit("Your ffmpeg has no libass (filter 'ass'). Install a full ffmpeg build.")
+        sys.exit(f"ERROR: ffmpeg not found ({', '.join(missing)} missing). Install it — macOS: brew install ffmpeg · "
+                 f"Windows: winget install Gyan.FFmpeg · Linux: sudo apt install ffmpeg — then restart the studio.")
+    if not has_libass():
+        log("note: this ffmpeg has no libass — captions will be drawn by Python (same style, no pop animation)")
 
 
 def frames(t: float) -> int:

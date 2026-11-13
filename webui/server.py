@@ -36,6 +36,9 @@ for d in (UPLOADS, OUT, ASSETS, THUMBS, *LIB.values()):
     d.mkdir(parents=True, exist_ok=True)
 
 sys.path.insert(0, str(ROOT))
+from autoedit.util import fix_path, has_libass  # noqa: E402  (repairs PATH for Finder/Explorer launches)
+
+fix_path()
 app = FastAPI(title="autoedit Studio")
 
 # ------------------------------------------------------------------ persistence
@@ -128,14 +131,33 @@ def run_job(jid: str):
         elif p.returncode == 0:
             job.update(status="done", progress=100, stage="Terminé")
         else:
-            job.update(status="failed", error=next((l for l in reversed(job["log"]) if "Error" in l or "error" in l),
-                                                   f"code {p.returncode}"))
+            job.update(status="failed", error=failure_reason(job["log"], p.returncode))
     except Exception as e:  # never kill the worker
         job.update(status="failed", error=str(e))
     finally:
         PROCS.pop(jid, None)
         job["finished"] = time.time()
         save_jobs()
+
+
+def failure_reason(log: list[str], code: int) -> str:
+    """The most useful line(s) explaining why a run stopped, in plain words when we recognise it."""
+    tail = [l for l in log if l.strip()][-12:]
+    text = "\n".join(tail)
+    if "ffmpeg not found" in text:
+        return next(l for l in tail if "ffmpeg not found" in l).replace("ERROR: ", "")
+    if "No module named" in text:
+        mod = re.search(r"No module named '([^']+)'", text)
+        return (f"Module Python manquant : {mod.group(1) if mod else '?'} — relancez le script d'installation "
+                "(ou pip install -r requirements.txt)")
+    if "No space left" in text:
+        return "Disque plein — libérez de l'espace."
+    if "MemoryError" in text or code in (-9, 137):
+        return "Mémoire insuffisante — fermez d'autres applications ou utilisez la transcription « small »."
+    errs = [l for l in tail if re.search(r"(Error|ERROR|error:|failed|✖)", l)]
+    raw = [l for l in tail if not l.startswith("[autoedit")]
+    pick = errs[-1:] or raw[-2:] or tail[-1:]
+    return " · ".join(x.strip()[:300] for x in pick) or f"code {code}"
 
 
 def worker():
@@ -584,7 +606,8 @@ async def put_settings(req: Request):
 @app.get("/api/health")
 def health():
     from autoedit import vision
-    return {"ffmpeg": bool(shutil.which("ffmpeg")), "vision": vision.available(),
+    return {"ffmpeg": bool(shutil.which("ffmpeg")), "libass": bool(shutil.which("ffmpeg")) and has_libass(),
+            "vision": vision.available(),
             "deno_or_node": bool(shutil.which("deno") or shutil.which("node")),
             "queue": sum(1 for j in JOBS.values() if j["status"] in ("queued", "running"))}
 

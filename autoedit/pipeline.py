@@ -97,7 +97,7 @@ def render_one(p: dict, out_dir: Path, cfg, info: dict | None = None) -> Path:
     final = out_dir / f"{name}_short{n}.mp4"
     log("final grade + captions + encode…")
     tmp = final.with_suffix(".rendering.mp4")
-    render.finish(video, audio, ass, tmp, cfg)
+    render.finish(video, audio, ass, tmp, cfg, plan=p)
     tmp.replace(final)
     shutil.copy(cw / "captions.srt", out_dir / f"{name}_short{n}.srt")
     first_b = next((s["t0"] for s in p["shots"] if s["kind"] == "B"), 1.0)

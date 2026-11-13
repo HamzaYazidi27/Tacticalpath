@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import sfx
 from .analyze import face_at, face_track
-from .util import FPS, H, ROOT, W, ffmpeg, frames, log, probe, run
+from .util import FPS, H, ROOT, W, ffmpeg, frames, has_libass, log, probe, run
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".opus"}
 LUT = ROOT / "templates" / "luts" / "crisp_pop_709.cube"
@@ -314,11 +314,78 @@ def mixed_lut(mix: float, work: Path) -> Path:
     return out
 
 
-def finish(video: Path, audio: Path, ass: Path, out: Path, cfg) -> Path:
+def caption_overlay(plan: dict, work: Path, cfg) -> Path:
+    """Captions + watermark drawn with Pillow (for ffmpeg builds without libass), as a concat list of
+    transparent PNG bands. Same measured style: Montserrat Black 82 px, #19F464, 2 px rim, hard shadow
+    (+1.5, +6), soft glow, centre at 50 %; watermark 56 px lower."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+    mc = _captions_module()
+    brand, split = brand_split(cfg.brand, cfg.brand_accent_split)
+    band_h, cy = 300, 150                      # band is placed with its centre on the frame centre
+    # Pillow sizes are em sizes (cap height = 0.70 em): 59 → 41 px caps, 24 → 17 px caps (= measured reference)
+    font = ImageFont.truetype(str(FONTS / "Montserrat-Black.otf"), 59)
+    wfont = ImageFont.truetype(str(FONTS / "Montserrat-ExtraBold.otf"), 24)
+    base, wbase = cy + 20.5, cy + 56 + 8.5     # baselines: caption caps centred on cy, watermark 56 px lower
+    d = work / "caption_png"
+    d.mkdir(exist_ok=True)
+
+    def draw_brand(img):
+        if not brand:
+            return
+        dr = ImageDraw.Draw(img)
+        parts = [(brand[:split].upper(), (230, 226, 222, 204)), (brand[split:].upper(), (84, 187, 111, 191))]
+        widths = [sum(dr.textlength(ch, font=wfont) + 11 for ch in t) for t, _ in parts]
+        x = (W - sum(widths) + 11) / 2
+        for (t, col), _ in zip(parts, widths):
+            for ch in t:
+                dr.text((x, wbase), ch, font=wfont, fill=col, anchor="ls")
+                x += dr.textlength(ch, font=wfont) + 11
+
+    def band(text):
+        img = Image.new("RGBA", (W, band_h), (0, 0, 0, 0))
+        if text:
+            glow = Image.new("RGBA", (W, band_h), (0, 0, 0, 0))
+            ImageDraw.Draw(glow).text((W / 2, base), text, font=font, fill=(25, 244, 100, 110), anchor="ms",
+                                      stroke_width=7, stroke_fill=(25, 244, 100, 110))
+            img = Image.alpha_composite(img, glow.filter(ImageFilter.GaussianBlur(12)))
+            dr = ImageDraw.Draw(img)
+            dr.text((W / 2 + 1.5, base + 6), text, font=font, fill=(10, 61, 22, 255), anchor="ms",
+                    stroke_width=2, stroke_fill=(10, 61, 22, 255))
+            dr.text((W / 2, base), text, font=font, fill=(25, 244, 100, 255), anchor="ms",
+                    stroke_width=2, stroke_fill=(6, 38, 13, 255))
+        draw_brand(img)
+        return img
+
+    entries, t = [], 0.0
+    blank = d / "blank.png"
+    band("").save(blank)
+    for k, (st, en, c) in enumerate(mc.chunk_words(plan["words"])):
+        if st > t + 0.01:
+            entries.append((blank, st - t))
+        f = d / f"c{k:04d}.png"
+        band(" ".join(mc.clean(w["word"], True) for w in c)).save(f)
+        entries.append((f, max(en - st, 0.04)))
+        t = en
+    if plan["duration"] > t:
+        entries.append((blank, plan["duration"] - t))
+    lst = work / "captions_png.txt"
+    lst.write_text("".join(f"file '{p.resolve()}'\nduration {dur:.4f}\n" for p, dur in entries)
+                   + f"file '{entries[-1][0].resolve()}'\n", encoding="utf-8")
+    return lst
+
+
+def finish(video: Path, audio: Path, ass: Path, out: Path, cfg, plan: dict | None = None) -> Path:
     lut = mixed_lut(cfg.lut_mix, ass.parent)
-    vf = (f"[0:v]lut3d=file='{fpath(lut)}',unsharp=5:5:{cfg.sharpen}:5:5:0,"
-          f"ass='{fpath(ass)}':fontsdir='{fpath(FONTS)}',format=yuv420p[v]")
-    ffmpeg("-i", str(video), "-i", str(audio), "-filter_complex", vf, "-map", "[v]", "-map", "1:a",
+    grade = f"lut3d=file='{fpath(lut)}',unsharp=5:5:{cfg.sharpen}:5:5:0"
+    if has_libass() or plan is None:
+        inputs = ["-i", str(video), "-i", str(audio)]
+        vf = f"[0:v]{grade},ass='{fpath(ass)}':fontsdir='{fpath(FONTS)}',format=yuv420p[v]"
+    else:                                     # no libass in this ffmpeg: overlay Python-drawn caption bands
+        lst = caption_overlay(plan, ass.parent, cfg)
+        inputs = ["-i", str(video), "-i", str(audio), "-f", "concat", "-safe", "0", "-i", str(lst)]
+        vf = (f"[0:v]{grade}[g];[2:v]fps={FPS},format=rgba[c];"
+              f"[g][c]overlay=x=0:y=(main_h-overlay_h)/2:format=auto,format=yuv420p[v]")
+    ffmpeg(*inputs, "-filter_complex", vf, "-map", "[v]", "-map", "1:a",
            "-r", str(FPS), "-c:v", "libx264", "-profile:v", "high", "-level", "4.2", "-preset", "medium", "-crf", "17",
            "-maxrate", "20M", "-bufsize", "40M", "-g", "15", "-bf", "2", "-movflags", "+faststart",
            "-c:a", "aac", "-b:a", "320k", "-ar", "48000", "-shortest", str(out))
