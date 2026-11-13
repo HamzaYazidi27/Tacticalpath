@@ -42,15 +42,23 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 Ce script installe automatiquement Python, ffmpeg (avec libass) et deno via `winget`, puis les dépendances et les modèles. Ce script n'a pas pu être testé ici : le serveur de développement tourne sous Linux.
 
-**2b. Mac / Linux / WSL :**
+**2b. Mac** (Terminal, dans le dossier du projet) :
 
-```bash
-./install.sh
-```
+1. Si vous n'avez pas Homebrew, installez-le une fois :
 
-Prérequis : Python 3.10+, ffmpeg avec libass, et deno ou node pour YouTube (`brew install ffmpeg deno` sur Mac). Testé sur une installation neuve : 1 min 20.
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
 
-Ce qui est téléchargé une seule fois : la transcription Whisper `small` (~500 Mo) et la vision CLIP (~600 Mo + torch CPU ~200 Mo).
+2. Lancez le studio. Au premier lancement, il installe tout seul Python 3.10+, ffmpeg, deno, les dépendances et les modèles (quelques minutes, une seule fois) :
+
+   ```bash
+   ./start-studio.sh
+   ```
+
+**2c. Linux / WSL :** `./start-studio.sh`, qui fait la même chose (via `apt`).
+
+Prérequis gérés automatiquement : Python 3.10+ (le Python 3.9 d'Apple est trop ancien), ffmpeg (avec ou sans libass), et deno ou node pour YouTube. Ce qui est téléchargé une fois : la transcription Whisper `small` (~500 Mo) et la vision CLIP (~600 Mo + torch ~200 Mo).
 
 **3. Mettre votre marque** dans `autoedit.config.json`, par exemple `"brand": "WILD|FRAME"`.
 
