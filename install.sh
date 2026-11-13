@@ -23,19 +23,24 @@ install_pkg() {   # install_pkg <brew name> <apt name>
   else echo "Please install $1 yourself, then run ./install.sh again."; exit 1; fi
 }
 
-# Python >= 3.10 (macOS ships 3.9, which is too old)
-PY=""
-for c in python3.13 python3.12 python3.11 python3.10 python3; do
-  if have "$c" && "$c" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then PY="$c"; break; fi
-done
-if [ -z "$PY" ]; then
-  say "Installing Python 3.12…"
-  install_pkg python@3.12 python3.12
-  PY="$(command -v python3.12 || true)"
-  [ -n "$PY" ] || { echo "Python 3.10+ not found after install. Open a new terminal and run ./install.sh again."; exit 1; }
-fi
-echo "Python: $("$PY" --version) ($PY)"
+# Python >= 3.10 (macOS ships 3.9, which is too old). Every candidate is tried until one can build a venv.
+candidates() {
+  for c in python3.12 python3.11 python3.13 python3.10 python3; do have "$c" && command -v "$c"; done
+  if have brew; then for v in 3.12 3.11 3.13; do
+    [ -x "$(brew --prefix)/opt/python@$v/bin/python$v" ] && echo "$(brew --prefix)/opt/python@$v/bin/python$v"; done; fi
+}
+py_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; }
 
+make_venv() {   # make_venv <python> : fresh .venv with a working pip, or fail
+  rm -rf .venv
+  if "$1" -m venv .venv; then .venv/bin/python -m pip --version >/dev/null 2>&1 && return 0; fi
+  echo "  ($1: built-in pip setup failed — trying get-pip instead)"
+  rm -rf .venv
+  "$1" -m venv --without-pip .venv || return 1
+  curl -fsSL https://bootstrap.pypa.io/get-pip.py -o .venv/get-pip.py || return 1
+  .venv/bin/python .venv/get-pip.py -q || return 1
+  .venv/bin/python -m pip --version >/dev/null 2>&1
+}
 if ! have ffmpeg; then say "Installing ffmpeg…"; install_pkg ffmpeg ffmpeg; fi
 FILTERS="$(ffmpeg -hide_banner -filters 2>/dev/null || true)"
 case "$FILTERS" in
@@ -50,7 +55,21 @@ fi
 
 # ---------------------------------------------------------------- Python environment
 say "Creating the Python environment (.venv)…"
-"$PY" -m venv .venv
+PY=""
+for c in $(candidates | awk '!seen[$0]++'); do
+  py_ok "$c" || continue
+  echo "Trying $("$c" --version 2>&1) ($c)…"
+  if make_venv "$c"; then PY="$c"; break; fi
+done
+if [ -z "$PY" ]; then
+  say "Installing Python 3.12 (no usable Python 3.10+ found)…"
+  install_pkg python@3.12 python3.12-venv
+  for c in "$(brew --prefix 2>/dev/null)/opt/python@3.12/bin/python3.12" python3.12; do
+    if have "$c" || [ -x "$c" ]; then if make_venv "$c"; then PY="$c"; break; fi; fi
+  done
+fi
+[ -n "$PY" ] || { echo "Could not create a Python environment. Send this whole message to support."; exit 1; }
+echo "Python environment: $(.venv/bin/python --version)"
 . .venv/bin/activate
 python -m pip install --upgrade pip >/dev/null
 pip install -r requirements.txt
@@ -72,6 +91,7 @@ PY
 [ -f autoedit.config.json ] || cp autoedit.config.example.json autoedit.config.json
 mkdir -p inbox outbox broll music
 chmod +x start-studio.sh 2>/dev/null || true
+date > .venv/.installed          # start-studio.sh only trusts a .venv that finished installing
 cat <<MSG
 
 ✔ Installed.
