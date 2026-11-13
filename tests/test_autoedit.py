@@ -232,3 +232,21 @@ class TestPhotoFallback(unittest.TestCase):
     def test_no_photos_flag(self):
         p = {"baby powder": [{"path": "/p2.jpg", "kind": "image"}]}
         self.assertNotIn(5, self._run({}, p, fallback=False))
+
+
+class TestWithoutVision(unittest.TestCase):
+    def test_resolve_runs_without_clip(self):
+        """Regression: resolve() crashed with NameError when torch/transformers are not installed."""
+        import tempfile
+        from autoedit import vision
+        with tempfile.TemporaryDirectory() as d:
+            lib = Path(d) / "lib"
+            lib.mkdir()
+            (lib / "glass_of_water.mp4").write_bytes(b"x")
+            cfg = Config(broll_dirs=[str(lib)], online_broll=False)
+            with mock.patch.object(vision, "available", return_value=False), \
+                 mock.patch.object(broll, "probe", return_value={"duration": 5.0}):
+                found, generic = broll.resolve({1: "glass of water", 2: "baby powder"}, cfg, Path(d) / "cache",
+                                               Path("/x.mp4"), [], {"start": 0, "end": 0}, needed=4)
+        self.assertEqual(found[1][0]["kind"], "video")
+        self.assertNotIn(2, found)

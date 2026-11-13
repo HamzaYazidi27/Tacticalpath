@@ -305,7 +305,7 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
             uniq.append(q)
     uniq = uniq[: max(needed, 1)]
     # CLIP is memory-hungry: one search at a time when vision is on (network waits are cached anyway)
-    with ThreadPoolExecutor(max_workers=1 if use_vision else (3 if remote else 1)) as ex:
+    with ThreadPoolExecutor(max_workers=1 if use_vision else (3 if video_remote else 1)) as ex:
         by_query = dict(zip(uniq, ex.map(lookup, uniq)))
     found = {idx: by_query[q] for idx, q in order if by_query.get(q)}
     for lst in found.values():

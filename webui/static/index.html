@@ -260,6 +260,7 @@ async function viewNew() {
       <div style="display:grid;gap:8px"><span class="eyebrow">Sources B-roll (vidéo d'abord)</span>
         <div class="sources" id="o_src">${SOURCES.map(([k, l]) => `<span class="chip ${srcOn.has(k) ? "on" : ""}" data-k="${k}">${l}</span>`).join("")}</div>
         <span class="hint">Pexels / Pixabay : ajoutez la clé dans Réglages. YouTube CC : vidéos dont le créateur autorise la réutilisation.</span></div>
+      <div id="visionWarn"></div>
       <label class="switch"><input type="checkbox" id="o_photos" ${c.photo_fallback !== false ? "checked" : ""}>Photo de secours si aucune vidéo ne montre le mot</label>
       <label class="f">Texte à afficher (vidéos sans parole uniquement)<input type="text" id="o_text" placeholder="Optionnel"></label>
       <button class="btn primary" id="go" disabled>Lancer le montage</button>
@@ -273,6 +274,7 @@ async function viewNew() {
   pick.onchange = () => uploadFiles([...pick.files]);
   renderPending();
   $("#go").onclick = launch;
+  api("/api/health").then(h => { if (!h.vision) $("#visionWarn").innerHTML = `<div class="errbox" style="background:rgba(240,178,74,.08);border-color:rgba(240,178,74,.45);color:#f3d9a6"><b style="color:var(--warn)">Vision CLIP non installée.</b> Sans elle, seuls votre bibliothèque, Pexels et Pixabay sont utilisés (pas de YouTube CC, Mixkit, Wikimedia ni photos). Installez-la : <span class="mono">pip install -r requirements-vision.txt</span> dans l'environnement du projet, puis relancez le studio.</div>`; }).catch(() => {});
 }
 function renderPending() {
   const box = $("#files"); if (!box) return;
