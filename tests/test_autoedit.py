@@ -250,3 +250,22 @@ class TestWithoutVision(unittest.TestCase):
                                                Path("/x.mp4"), [], {"start": 0, "end": 0}, needed=4)
         self.assertEqual(found[1][0]["kind"], "video")
         self.assertNotIn(2, found)
+
+
+class TestFfmpegCompat(unittest.TestCase):
+    def test_filter_file_syntax_by_version(self):
+        from autoedit import util
+        cases = {"ffmpeg version 8.0 Copyright (c) 2000-2025": "-/filter_complex",
+                 "ffmpeg version 7.1.1 Copyright": "-/filter_complex",
+                 "ffmpeg version n7.1 Copyright": "-/filter_complex",
+                 "ffmpeg version N-118000-g1234 Copyright": "-/filter_complex",
+                 "ffmpeg version 6.1.1-3ubuntu5 Copyright": "-filter_complex_script",
+                 "ffmpeg version 5.1.6 Copyright": "-filter_complex_script"}
+        for banner, flag in cases.items():
+            util._FFMAJOR = None
+            with mock.patch.object(util.subprocess, "run", return_value=types.SimpleNamespace(stdout=banner)), \
+                 mock.patch.dict(util.os.environ if hasattr(util, "os") else {}, {}, clear=False):
+                import os
+                os.environ.pop("AUTOEDIT_FFMPEG_MAJOR", None)
+                self.assertEqual(util.filter_file_args("f.txt")[0], flag, banner)
+        util._FFMAJOR = None

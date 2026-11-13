@@ -10,7 +10,7 @@ from pathlib import Path
 
 from . import sfx
 from .analyze import face_at, face_track
-from .util import FPS, H, ROOT, W, ffmpeg, frames, has_libass, log, probe, run
+from .util import FPS, H, ROOT, W, ffmpeg, filter_file_args, frames, has_libass, log, probe, run
 
 AUDIO_EXT = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac", ".opus"}
 LUT = ROOT / "templates" / "luts" / "crisp_pop_709.cube"
@@ -47,7 +47,7 @@ def cut_aroll(src: Path, islands: list[dict], out: Path, info: dict) -> Path:
     script = "".join(parts) + "".join(labels) + f"concat=n={len(islands)}:v=1:a=1[v][a]"
     fc = out.with_suffix(".filter.txt")
     fc.write_text(script)
-    ffmpeg("-i", str(src), "-filter_complex_script", str(fc), "-map", "[v]", "-map", "[a]",
+    ffmpeg("-i", str(src), *filter_file_args(fc), "-map", "[v]", "-map", "[a]",
            "-c:v", "libx264", "-crf", "14", "-preset", "veryfast", "-pix_fmt", "yuv420p",
            "-c:a", "pcm_s16le", "-ar", "48000", str(out))
     return out
@@ -247,7 +247,7 @@ def render_audio_montage(plan: dict, src: Path, work: Path, cfg) -> Path:
         fc.write_text("".join(parts) + "".join(labels) + f"concat=n={len(shots)}:v=0:a=1[a]")
         bed = work / "bed.wav"
         if probe(src)["has_audio"]:
-            ffmpeg("-i", str(src), "-filter_complex_script", str(fc), "-map", "[a]", "-ar", "48000", "-ac", "2", str(bed))
+            ffmpeg("-i", str(src), *filter_file_args(fc), "-map", "[a]", "-ar", "48000", "-ac", "2", str(bed))
         else:
             ffmpeg("-f", "lavfi", "-i", f"anullsrc=r=48000:cl=stereo", "-t", f"{D:.3f}", str(bed))
     bed_n = work / "bed_norm.wav"                                  # bring the bed up first, then add the SFX on top

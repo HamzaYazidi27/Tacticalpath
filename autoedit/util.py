@@ -83,6 +83,29 @@ fix_path()
 _LIBASS = None
 
 
+_FFMAJOR = None
+
+
+def ffmpeg_major() -> int:
+    """Major version of ffmpeg (git/nightly builds count as new)."""
+    global _FFMAJOR
+    import os
+    if os.environ.get("AUTOEDIT_FFMPEG_MAJOR"):          # testing hook
+        return int(os.environ["AUTOEDIT_FFMPEG_MAJOR"])
+    if _FFMAJOR is None:
+        import re
+        out = subprocess.run(["ffmpeg", "-hide_banner", "-version"], capture_output=True, text=True).stdout
+        m = re.search(r"ffmpeg version n?(\d+)\.", out)
+        _FFMAJOR = int(m.group(1)) if m else 99
+    return _FFMAJOR
+
+
+def filter_file_args(path) -> list:
+    """Read a filtergraph from a file. '-filter_complex_script' was removed in recent ffmpeg (7.1+/8);
+    the replacement '-/filter_complex <file>' only exists since 7.0 — use what this ffmpeg understands."""
+    return ["-/filter_complex", str(path)] if ffmpeg_major() >= 7 else ["-filter_complex_script", str(path)]
+
+
 def has_libass() -> bool:
     """True when ffmpeg can burn ASS captions. Without it captions are drawn in Python instead."""
     global _LIBASS
