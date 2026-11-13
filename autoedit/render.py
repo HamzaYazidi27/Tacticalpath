@@ -84,19 +84,41 @@ def render_a(aroll: Path, s: dict, out: Path, size, track):
            "-vf", f"crop={cw}:{ch}:{x}:{y},scale={W}:{H}:flags=lanczos,setsar=1,format=yuv420p", *ENC, str(out))
 
 
+def _smooth_push(n: int, amount: float, cx: float = 0.5) -> str:
+    """Slow, jitter-free push-in: zoompan on a 2x supersampled frame (sub-pixel steps at output size)."""
+    return (f"scale={2 * W}:{2 * H}:force_original_aspect_ratio=increase:flags=lanczos,"
+            f"crop={2 * W}:{2 * H}:x='(iw-{2 * W})*{cx}':y='(ih-{2 * H})/2',"
+            f"zoompan=z='1+{amount}*on/{max(n, 1)}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s={W}x{H}:fps={FPS}")
+
+
 def render_b(s: dict, out: Path):
+    """B-roll shot: full-bleed 9:16 crop, native motion kept; static footage gets a slow smooth push-in."""
     a = s["asset"]
     n = frames(s["t1"]) - frames(s["t0"])
     if a["kind"] == "image":
-        z = "1+0.06*on/%d" % max(n, 1)
-        ffmpeg("-loop", "1", "-i", a["path"], "-frames:v", str(n), "-vf",
-               f"scale={2 * W}:{2 * H}:force_original_aspect_ratio=increase,crop={2 * W}:{2 * H},"
-               f"zoompan=z='{z}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={n}:s={W}x{H}:fps={FPS},setsar=1,format=yuv420p",
-               *ENC, str(out))
-    else:
-        ffmpeg("-stream_loop", "-1", "-ss", f"{s.get('in', 0):.3f}", "-i", a["path"], "-frames:v", str(n), "-vf",
-               f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H},setsar=1,format=yuv420p",
-               *ENC, str(out))
+        ffmpeg("-loop", "1", "-framerate", str(FPS), "-i", a["path"], "-frames:v", str(n), "-vf",
+               f"{_smooth_push(n, 0.06)},setsar=1,format=yuv420p", *ENC, str(out))
+        return
+    static = a.get("motion") is not None and a["motion"] < 1.5
+    cx = a.get("crop_x", 0.5)                            # subject-aware 9:16 window (CLIP)
+    move = f"fps={FPS},{_smooth_push(n, 0.05, cx)}" if static else \
+        f"fps={FPS},scale={W}:{H}:force_original_aspect_ratio=increase:flags=lanczos,crop={W}:{H}:x='(iw-{W})*{cx}':y='(ih-{H})/2'"
+    loop = [] if a.get("max_len") else ["-stream_loop", "-1"]   # cued shots are long enough: never loop them
+    ffmpeg(*loop, "-ss", f"{s.get('in', 0):.3f}", "-i", a["path"], "-frames:v", str(n), "-vf",
+           f"{move},setsar=1,format=yuv420p", *ENC, str(out))
+    if frames_of(out) < n:                               # source ended early: hold the last frame, never a gap
+        tmp = out.with_suffix(".pad.mp4")
+        ffmpeg("-i", str(out), "-vf", f"tpad=stop_mode=clone:stop={n},trim=end_frame={n}", *ENC, str(tmp))
+        tmp.replace(out)
+
+
+def frames_of(p: Path) -> int:
+    r = run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0", "-show_entries",
+             "stream=nb_read_frames", "-of", "csv=p=0", str(p)])
+    try:
+        return int(r.stdout.strip())
+    except ValueError:
+        return 0
 
 
 def render_video(plan: dict, aroll: Path, work: Path) -> Path:

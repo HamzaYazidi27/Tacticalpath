@@ -182,3 +182,29 @@ class TestPlacementRules(unittest.TestCase):
         keys = [s.get("key") for s in p["shots"] if s["kind"] == "B"]
         self.assertNotIn(0, keys)                          # word at t=0 can't get B-roll (speaker first)
         self.assertIn(4, keys)
+
+
+class TestVideoBrollRules(unittest.TestCase):
+    def test_phrase_words_not_searched_alone(self):
+        w = fake_words("Do I need to bring baby powder today? Is the glass of water cold?")
+        qs = [k["query"] for k in L.keywords(w, 0, len(w) - 1)]
+        self.assertIn("baby powder", qs)
+        self.assertIn("glass of water", qs)
+        self.assertNotIn("powder", qs)          # covered by "baby powder"
+
+    def test_unsafe_titles_filtered(self):
+        from autoedit.social import UNSAFE
+        self.assertTrue(UNSAFE.search("a young woman in small shorts performing a sexy dance"))
+        self.assertFalse(UNSAFE.search("filling a glass with sparkling water"))
+
+    def test_youtube_circuit_breaker(self):
+        from autoedit import social
+        y = social.YouTubeCC(Path("/tmp/none"))
+        y._fail(hard=True)
+        self.assertTrue(y.disabled)
+        self.assertEqual(y.find("anything"), [])   # no network call once paused
+
+    def test_video_only_default(self):
+        cfg = Config()
+        self.assertFalse(cfg.allow_photos)
+        self.assertEqual(cfg.broll_sources[:3], ["library", "urls", "youtube_cc"])

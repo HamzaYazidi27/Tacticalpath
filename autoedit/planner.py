@@ -114,6 +114,10 @@ def plan(words, clip, found, generic, cfg):
         cands = [a for a in found[k] if ok(a)]
         if not cands:
             continue                        # never the same picture twice in a row, nor too often
+        if cands[0].get("max_len"):                     # never run past the end of the continuous source shot
+            end = min(end, start + cands[0]["max_len"])
+            if end - start < cfg.broll_shot_min * 0.9:
+                continue
         uses.setdefault(cands[0]["path"], []).append(start)
         b_shots.append({"t0": start, "t1": _q(end), "kind": "B", "key": k, "query": clip["queries"].get(k, ""),
                         "word": by_src[k]["word"], "assets": cands})
@@ -201,6 +205,9 @@ def plan(words, clip, found, generic, cfg):
             s["in"] = 0.0
             continue
         base = a.get("in", min(0.5, a.get("dur", 0) * 0.1))
+        if a.get("max_len"):                            # cued to the matching shot: no offsets, no reuse drift
+            s["in"] = round(base, 3)
+            continue
         off = used.get(a["path"], 0.0)
         span = a.get("max_len") or max(a.get("dur", 0) - base, 0)
         s["in"] = round(base + (off if span - off >= d else 0.0), 3)

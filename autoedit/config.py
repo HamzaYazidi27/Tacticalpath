@@ -51,8 +51,10 @@ class Config:
     pexels_key: str = field(default_factory=lambda: os.environ.get("PEXELS_API_KEY", ""))
     pixabay_key: str = field(default_factory=lambda: os.environ.get("PIXABAY_API_KEY", ""))
     online_broll: bool = True
-    broll_sources: list = field(default_factory=lambda: ["library", "urls", "pexels", "pixabay", "wikimedia",
-                                                         "youtube_cc", "openverse"])   # + "archive" (slow) on request
+    # social video first: your own links (YouTube/TikTok…), then YouTube Creative Commons, then stock video.
+    broll_sources: list = field(default_factory=lambda: ["library", "urls", "youtube_cc", "pexels", "pixabay",
+                                                         "mixkit", "wikimedia", "openverse"])   # + "archive" on request
+    allow_photos: bool = False                        # B-roll is VIDEO only unless this is true
     broll_urls: list = field(default_factory=list)   # links (or .txt files of links) to footage you may reuse
     vision: str = "auto"                              # auto | on | off — CLIP check that B-roll shows the word
     # --- montage mode (no speech)

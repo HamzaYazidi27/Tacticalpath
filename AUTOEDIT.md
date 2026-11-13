@@ -56,19 +56,32 @@ python -m autoedit episode.mp4 --count 3 --brand "WILD|FRAME"
 
 Le `|` indique où la marque change de couleur : `WILD` en blanc, `FRAME` en vert.
 
-## B-roll réel, qui montre exactement ce qui est dit
+## B-roll réel en VIDÉO, qui montre exactement ce qui est dit
 
-Pour chaque mot ou expression à illustrer (« glass of water », « baby powder », « monkey butt »…), le système cherche de **vraies images** dans les sources ci-dessous, dans cet ordre (modifiable avec `--sources`) :
+Par défaut, le B-roll est **uniquement en vidéo** ; les photos n'arrivent que sur demande (`"allow_photos": true`). Pour chaque mot ou expression (« glass of water », « baby powder »…), le système essaie ces sources dans l'ordre (modifiable avec `--sources`) :
 
-| Source | Contenu | Licence vérifiée |
-|---|---|---|
-| `library` : votre dossier `broll/` (`--broll`) | Vos clips et photos | Les vôtres |
-| `urls` : vos liens (`--broll-urls liens.txt`) | Vidéos **YouTube, TikTok, Instagram, X…** que vous possédez ou avez le droit d'utiliser | Votre responsabilité |
-| `pexels`, `pixabay` (clé gratuite) | Vidéos stock réelles | Licence Pexels / Pixabay |
-| `wikimedia` | Vidéos réelles de Wikimedia Commons | CC0, domaine public, CC BY |
-| `youtube_cc` | Vidéos **YouTube sous licence Creative Commons** (licence revérifiée vidéo par vidéo) | CC BY uniquement |
-| `openverse` | Vraies photos (Flickr, musées…), animées par un zoom lent | CC0, PDM, CC BY |
-| `archive` (sur demande) | Films d'Internet Archive | Domaine public, CC BY |
+| Ordre | Source | Contenu | Licence |
+|---|---|---|---|
+| 1 | `library` : votre dossier `broll/` | Vos clips | Les vôtres |
+| 2 | `urls` : vos liens (`--broll-urls liens.txt`) | **Vidéos YouTube, TikTok, Instagram…** que vous possédez ou avez le droit d'utiliser | Votre responsabilité |
+| 3 | `youtube_cc` | **Vidéos YouTube sous licence Creative Commons** (licence revérifiée vidéo par vidéo) | CC BY |
+| 4 | `pexels`, `pixabay` (clé gratuite) | Vidéos stock réelles | Licence Pexels / Pixabay |
+| 5 | `mixkit` (sans clé) | Vidéos stock réelles en HD | Mixkit Free License |
+| 6 | `wikimedia` | Vidéos de Wikimedia Commons | CC0, domaine public, CC BY |
+| option | `openverse` (photos), `archive` | Photos réelles / films anciens | CC0, PDM, CC BY |
+
+**Pourquoi pas « n'importe quelle vidéo YouTube ou TikTok » :** un extrait court n'est pas protégé. Content ID détecte des extraits de 1 à 2 secondes, et c'est la cause des strikes et des démonétisations sur les chaînes qui le font. TikTok n'a pas de licence de réutilisation : utilisez vos liens, avec l'accord du créateur.
+
+### Fluidité « Tacticalpath »
+- **Un seul plan continu par B-roll :** le système détecte les coupes à l'intérieur du clip source (compilations, montages) et ne garde que le plan qui montre le mot. Jamais de coupe parasite au milieu d'un B-roll.
+- **Mouvement naturel conservé :** quand le plan est statique, il reçoit une poussée lente calculée sur une image sur-échantillonnée 2×, donc au sous-pixel, sans tremblement.
+- **Recadrage 9:16 intelligent :** CLIP teste plusieurs fenêtres horizontales et garde celle où le sujet est visible (le ballon, le verre), pas simplement le centre.
+- **Calage au mot :** l'image arrive 2 images avant le mot. Si le mot est encore prononcé, les B-roll s'enchaînent directement. Un B-roll n'est jamais décalé sur un autre mot.
+- **Plutôt rien que faux :**
+  - pour une expression, le titre du clip doit la contenir, ou la correspondance visuelle doit être quasi certaine ;
+  - un mot inclus dans une expression n'est pas cherché seul ;
+  - sans bonne vidéo, le speaker reste à l'écran.
+- **Filtres de contenu :** les titres explicites et les images plus « suggestives » que le mot cherché sont exclus (calibré sur de vraies images stock), ainsi que les visages d'inconnus pour des mots sans rapport.
 
 **Comment le système garantit que l'image montre le mot (vision CLIP, locale et gratuite) :**
 1. Pour une vidéo YouTube, les sous-titres du clip indiquent à quelle seconde le mot y est prononcé.

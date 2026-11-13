@@ -111,9 +111,18 @@ def cut_segment(src: str, t: float, out: Path, length: float = SEG, headers: str
     return out if p.returncode == 0 and out.exists() and out.stat().st_size > 1000 else None
 
 
-def _asset(path: Path, query: str, credit: str, license_: str, m: dict, source: str) -> dict:
+def _asset(path: Path, query: str, credit: str, license_: str, m: dict, source: str) -> dict | None:
+    """Video asset trimmed to the single continuous shot that shows the query (None if that shot is too short)."""
+    t = max(0.0, m.get("t_local", 0.3))
+    sh = vision.clean_shot(str(path), t + 0.2)
+    span = sh["end"] - max(sh["start"], t - 0.3)
+    if span < 0.9:
+        return None
+    start = max(sh["start"], t - 0.3)
     return {"path": str(path), "kind": "video", "source": source, "query": query, "credit": credit,
-            "license": license_, "in": 0.3, "dur": SEG, "match": round(m["prob"], 3), "sim": round(m["sim"], 3)}
+            "license": license_, "in": round(start, 3), "max_len": round(span, 3), "dur": sh["total"] or SEG,
+            "motion": sh["motion"], "match": round(m["prob"], 3), "sim": round(m["sim"], 3),
+            "crop_x": vision.best_crop(str(path), t + 0.2, query)}
 
 
 # ---------------------------------------------------------------- YouTube (Creative Commons only)
@@ -122,6 +131,15 @@ class YouTubeCC:
 
     def __init__(self, cache: Path, candidates: int = 4):
         self.cache, self.candidates = cache / "youtube_cc", candidates
+        self.failures, self.disabled = 0, False          # circuit breaker: stop hammering a blocked network
+
+    def _fail(self, hard: bool = False):
+        self.failures += 1
+        if hard or self.failures >= 3:
+            if not self.disabled:
+                log("youtube-cc: paused for the rest of this edit (network blocked by YouTube). "
+                    "It works from a normal home/office connection.")
+            self.disabled = True
 
     @staticmethod
     def _ydl(opts):
@@ -142,6 +160,7 @@ class YouTubeCC:
                 y.download([f"https://www.youtube.com/watch?v={vid}"])
         except Exception as e:
             log(f"youtube-cc: download of {vid} failed ({type(e).__name__})")
+            self._fail(hard="confirm you" in str(e) or "403" in str(e))
             return None
         done = [p for p in self.cache.glob(name + ".*") if p.suffix not in (".part", ".ytdl")]
         return done[0] if done else None
@@ -167,14 +186,18 @@ class YouTubeCC:
                     return (t0 + sg.get("tOffsetMs", 0)) / 1000.0
         return None
 
-    def find(self, query: str, limit: int = 1) -> list[dict]:
+    def find(self, query: str, limit: int = 1, verify: str | None = None) -> list[dict]:
+        vq = verify or query          # search with `query`, require that the picture shows `vq`
+        if self.disabled:
+            return []
         try:
             with self._ydl({"extract_flat": True, "skip_download": True, "playlistend": 15}) as y:
                 res = y.extract_info(self.SEARCH.format(q=urllib.parse.quote(query)), download=False)
         except Exception as e:
             log(f"youtube-cc: search failed for '{query}' ({type(e).__name__})")
             return []
-        entries = [e for e in (res.get("entries") or []) if e and 8 <= (e.get("duration") or 0) <= 900]
+        entries = [e for e in (res.get("entries") or []) if e and 8 <= (e.get("duration") or 0) <= 900
+                   and not UNSAFE.search(e.get("title") or "")]
         out = []
         for e in entries[: self.candidates]:
             vid = e.get("id")
@@ -183,8 +206,7 @@ class YouTubeCC:
                     info = y.extract_info(f"https://www.youtube.com/watch?v={vid}", download=False)
             except Exception as ex:
                 if "confirm you" in str(ex) and "bot" in str(ex):
-                    log("youtube-cc: YouTube asks this network to sign in (bot check) — skipped. "
-                        "Works from a normal home/office connection.")
+                    self._fail(hard=True)
                     return out
                 log(f"youtube-cc: {vid} unavailable ({type(ex).__name__})")
                 continue
@@ -197,8 +219,10 @@ class YouTubeCC:
             w0, w1 = (max(0.0, hint - 10), min(dur, hint + 15)) if hint is not None else (0.0, min(dur, 300.0))
             scan = self._download(vid, w0, w1, "bv*[height<=360]/bv*[height<=480]/b[height<=480]", f"{vid}_scan_{int(w0)}")
             if not scan:
+                if self.disabled:
+                    return out
                 continue
-            m = vision.best_moment(str(scan), w1 - w0, query, hint=(hint - w0) if hint is not None else None)
+            m = vision.best_moment(str(scan), w1 - w0, vq, hint=(hint - w0) if hint is not None else None)
             if not m:
                 continue
             # 2) only the matching seconds in full quality
@@ -208,7 +232,9 @@ class YouTubeCC:
             seg = cut_segment(str(hq), 0.0 if hq != scan else m["t"] - 0.3, self.cache / f"{vid}_{int(t * 10)}.mp4")
             if seg:
                 credit = f"\"{info.get('title', '')}\" by {info.get('uploader', '?')} — {info.get('webpage_url')} — {lic}"
-                out.append(_asset(seg, query, credit, lic, m, "youtube_cc"))
+                a = _asset(seg, query, credit, lic, {**m, "t_local": 0.3}, "youtube_cc")
+                if a:
+                    out.append(a)
             if len(out) >= limit:
                 break
         return out
@@ -221,7 +247,8 @@ class Wikimedia:
     def __init__(self, cache: Path, candidates: int = 4):
         self.cache, self.candidates = cache / "wikimedia", candidates
 
-    def find(self, query: str, limit: int = 1) -> list[dict]:
+    def find(self, query: str, limit: int = 1, verify: str | None = None) -> list[dict]:
+        vq = verify or query          # search with `query`, require that the picture shows `vq`
         url = self.API + "?" + urllib.parse.urlencode({
             "action": "query", "format": "json", "generator": "search", "gsrnamespace": 6,
             "gsrsearch": f"filetype:video {query}", "gsrlimit": 40, "prop": "imageinfo",
@@ -244,14 +271,16 @@ class Wikimedia:
             dur = url_duration(ii["url"])
             if dur <= 0:
                 continue
-            m = vision.best_moment(ii["url"], dur, query)
+            m = vision.best_moment(ii["url"], dur, vq)
             if not m:
                 continue
             seg = cut_segment(ii["url"], m["t"] - 0.3, self.cache / f"{pg['pageid']}_{int(m['t'])}.mp4")
             if seg:
                 artist = re.sub(r"<[^>]+>", "", (meta.get("Artist") or {}).get("value", "unknown"))
                 credit = f"\"{pg['title']}\" by {artist} — https://commons.wikimedia.org/?curid={pg['pageid']} — {lic}"
-                out.append(_asset(seg, query, credit, lic, m, "wikimedia"))
+                a = _asset(seg, query, credit, lic, {**m, "t_local": 0.3}, "wikimedia")
+                if a:
+                    out.append(a)
             if len(out) >= limit:
                 break
         return out
@@ -262,7 +291,8 @@ class InternetArchive:
     def __init__(self, cache: Path, candidates: int = 3):
         self.cache, self.candidates = cache / "archive", candidates
 
-    def find(self, query: str, limit: int = 1) -> list[dict]:
+    def find(self, query: str, limit: int = 1, verify: str | None = None) -> list[dict]:
+        vq = verify or query          # search with `query`, require that the picture shows `vq`
         q = f'({query}) AND mediatype:movies AND (licenseurl:*publicdomain* OR licenseurl:*creativecommons*)'
         url = "https://archive.org/advancedsearch.php?" + urllib.parse.urlencode(
             {"q": q, "fl[]": ["identifier", "title", "licenseurl"], "rows": 10, "output": "json",
@@ -288,18 +318,23 @@ class InternetArchive:
             scan = min(vids, key=lambda f: int(f.get("size") or 1e12))          # small file for scanning
             best = max(vids, key=lambda f: int(f.get("size") or 0))             # best quality for the cut
             base = f"https://archive.org/download/{d['identifier']}/"
-            m = vision.best_moment(base + urllib.parse.quote(scan["name"]), float(scan["length"]), query, samples=20)
+            m = vision.best_moment(base + urllib.parse.quote(scan["name"]), float(scan["length"]), vq, samples=20)
             if not m:
                 continue
             seg = cut_segment(base + urllib.parse.quote(best["name"]), m["t"] - 0.3,
                               self.cache / f"{d['identifier']}_{int(m['t'])}.mp4")
             if seg:
                 credit = f"\"{d.get('title', d['identifier'])}\" — https://archive.org/details/{d['identifier']} — {lic}"
-                out.append(_asset(seg, query, credit, lic, m, "archive"))
+                a = _asset(seg, query, credit, lic, {**m, "t_local": 0.3}, "archive")
+                if a:
+                    out.append(a)
             if len(out) >= limit:
                 break
         return out
 
+
+UNSAFE = re.compile(r"\b(sexy|sensual|seductive|erotic|lingerie|naked|nude|stripper|twerk\w*|provocative|"
+                    r"blood|gore|corpse|dead body)\b", re.I)   # never auto-insert these as B-roll
 
 PEOPLE_WORDS = set("""man men woman women person people guy girl boy kid kids child children baby babies family crowd
 doctor scientist soldier diver divers farmer hunter tourist teenager athlete player worker face selfie portrait""".split())
@@ -319,6 +354,73 @@ def face_prominent(img) -> bool:
         return False
 
 
+# ---------------------------------------------------------------- Mixkit (free stock VIDEO, no key)
+class Mixkit:
+    """mixkit.co free stock videos — Mixkit Stock Video Free License: commercial use allowed, no attribution
+    required (credit written anyway). Searched through the public site, politely (cache + spacing)."""
+    SITE = "https://mixkit.co/free-stock-video/discover/{slug}/"
+    ASSET = "https://assets.mixkit.co/videos/{id}/{id}-{res}.mp4"
+    BROWSER = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                             "Chrome/124.0 Safari/537.36"}
+
+    def __init__(self, cache: Path, candidates: int = 4):
+        self.cache, self.candidates = cache / "mixkit", candidates
+
+    def _search(self, query: str) -> list[tuple[str, str]]:
+        import hashlib
+        slug = re.sub(r"[^a-z0-9]+", "-", query.lower()).strip("-")
+        cf = self.cache / f"search_{hashlib.md5(slug.encode()).hexdigest()[:12]}.json"
+        if cf.exists():
+            return [tuple(x) for x in json.loads(cf.read_text())]
+        self.cache.mkdir(parents=True, exist_ok=True)
+        try:
+            req = urllib.request.Request(self.SITE.format(slug=slug), headers=self.BROWSER)
+            with urllib.request.urlopen(req, timeout=30) as r:
+                html = r.read().decode("utf-8", "ignore")
+        except Exception as e:
+            log(f"mixkit: '{query}' failed ({type(e).__name__})")
+            return []
+        items = list(dict.fromkeys(re.findall(r'href="/free-stock-video/([a-z0-9-]+)-(\d+)/"', html)))
+        cf.write_text(json.dumps(items))
+        return items
+
+    def find(self, query: str, limit: int = 1, verify: str | None = None) -> list[dict]:
+        vq = verify or query          # search with `query`, require that the picture shows `vq`
+        items = self._search(query)
+        words = set(re.findall(r"[a-z]{3,}", query.lower()))
+        # rank by how many query words appear in the clip title, keep the site order otherwise
+        items = [it for it in items if not UNSAFE.search(it[0].replace("-", " "))]
+        items = sorted(items, key=lambda it: -len(words & set(it[0].split("-"))))
+        out = []
+        for title, vid in items[: self.candidates]:
+            dest = self.cache / f"{vid}.mp4"
+            if not dest.exists():
+                for res in ("1080", "720"):
+                    try:
+                        req = urllib.request.Request(self.ASSET.format(id=vid, res=res), headers=self.BROWSER)
+                        with urllib.request.urlopen(req, timeout=60) as r:
+                            dest.write_bytes(r.read())
+                        break
+                    except Exception:
+                        continue
+            if not dest.exists():
+                continue
+            dur = probe(dest)["duration"]
+            m = vision.best_moment(str(dest), dur, vq, samples=10)
+            if not m:
+                continue
+            need = set(re.findall(r"[a-z]{3,}", vq.lower())) - {"the", "and", "with"}
+            if len(need) >= 2 and not need <= set(title.split("-")) and m["prob"] < 0.985:
+                continue                    # phrase only half in the title: demand a near-certain visual match
+            a = _asset(dest, query, f"\"{title.replace('-', ' ')}\" — https://mixkit.co/free-stock-video/{title}-{vid}/ "
+                       "— Mixkit Stock Video Free License", "Mixkit Free License", {**m, "t_local": m["t"]}, "mixkit")
+            if a:
+                out.append(a)
+            if len(out) >= limit:
+                break
+        return out
+
+
 # ---------------------------------------------------------------- Openverse (real CC photos: Flickr, museums…)
 class Openverse:
     """Real photographs under CC BY / CC0 / Public Domain Mark, CLIP-checked; animated with a slow push-in."""
@@ -327,7 +429,8 @@ class Openverse:
     def __init__(self, cache: Path, candidates: int = 6):
         self.cache, self.candidates = cache / "openverse", candidates
 
-    def find(self, query: str, limit: int = 1) -> list[dict]:
+    def find(self, query: str, limit: int = 1, verify: str | None = None) -> list[dict]:
+        vq = verify or query          # search with `query`, require that the picture shows `vq`
         url = self.API + "?" + urllib.parse.urlencode({"q": query, "license": "by,cc0,pdm", "page_size": 20,
                                                        "mature": "false"})
         try:
@@ -360,8 +463,10 @@ class Openverse:
             imgs, paths, metas = [imgs[i] for i in keep], [paths[i] for i in keep], [metas[i] for i in keep]
             if not imgs:
                 return []
-        prob, sim = vision.score(vision.embed_images(imgs), query)
-        order = sorted(range(len(paths)), key=lambda i: -(prob[i] + sim[i]))
+        emb = vision.embed_images(imgs)
+        prob, sim = vision.score(emb, vq)
+        bad = vision.unsafe_mask(emb, sim)
+        order = [i for i in sorted(range(len(paths)), key=lambda i: -(prob[i] + sim[i])) if not bad[i]]
         out = []
         for i in order:
             if prob[i] < vision.MIN_PROB or sim[i] < vision.MIN_SIM:

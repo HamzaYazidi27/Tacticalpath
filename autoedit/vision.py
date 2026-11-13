@@ -19,9 +19,17 @@ from .util import log, proc_env
 
 MODEL_ID = "openai/clip-vit-base-patch32"
 NEGATIVES = ["a person talking to the camera in a studio", "text or a title on a screen", "a black or blank screen",
-             "a blurry out of focus image", "a video game screenshot"]
+             "a blurry out of focus image", "a video game screenshot", "a sexually suggestive image"]
 MIN_PROB = 0.60          # query must clearly beat the negatives
 MIN_SIM = 0.235          # and look like it in absolute terms
+
+SAFETY = ["a sexually suggestive close-up of a woman's body", "a close-up of buttocks", "a person in underwear or a bikini",
+          "a woman's buttocks in tight shorts or leggings", "a close-up of a woman's chest"]
+
+
+def unsafe_mask(emb: np.ndarray, query_sim: np.ndarray) -> np.ndarray:
+    """True where a frame reads more as suggestive than as the query (calibrated on real stock frames)."""
+    return (emb @ embed_texts(SAFETY).T).max(1) >= query_sim
 
 _model = None
 
@@ -69,9 +77,19 @@ def embed_texts(texts) -> np.ndarray:
     return torch.nn.functional.normalize(e, dim=-1).numpy()
 
 
+def _competitors(query: str) -> list[str]:
+    """For a phrase, its generic head noun competes: 'baby powder' must look more like baby powder than
+    like any 'powder' (stops an explosion of coloured powder passing as baby powder)."""
+    words = query.lower().split()
+    if len(words) < 2:
+        return []
+    head = query.lower().split(" of ")[0].split()[-1] if " of " in query.lower() else words[-1]
+    return [f"a photo of {head}"] if head != query.lower() else []
+
+
 def score(img_emb: np.ndarray, query: str) -> tuple[np.ndarray, np.ndarray]:
     """Per-frame (prob, sim) for a query."""
-    t = embed_texts([f"a photo of {query}"] + NEGATIVES)
+    t = embed_texts([f"a photo of {query}"] + NEGATIVES + _competitors(query))
     sims = img_emb @ t.T                                  # (frames, 1+neg)
     logits = 100.0 * sims
     logits -= logits.max(1, keepdims=True)
@@ -112,20 +130,82 @@ def best_moment(src: str, duration: float, query: str, hint: float | None = None
     imgs, ts = grab_frames(src, times, headers=headers)
     if not imgs:
         return None
-    prob, sim = score(embed_images(imgs), query)
-    k = int(np.argmax(prob + sim))
-    if prob[k] < MIN_PROB or sim[k] < MIN_SIM:
+    emb = embed_images(imgs)
+    prob, sim = score(emb, query)
+    comb = np.where(unsafe_mask(emb, sim), -1.0, prob + sim)   # never pick a frame that reads as suggestive
+    k = int(np.argmax(comb))
+    if comb[k] < 0 or prob[k] < MIN_PROB or sim[k] < MIN_SIM:
         return None
     # refine around the best sample
     step = (times[1] - times[0]) if len(times) > 1 else 1.0
     fine = [ts[k] + d for d in np.linspace(-step / 2, step / 2, 5) if 0 <= ts[k] + d <= duration - 1.0]
     imgs2, ts2 = grab_frames(src, fine, headers=headers)
     if imgs2:
-        p2, s2 = score(embed_images(imgs2), query)
-        j = int(np.argmax(p2 + s2))
-        if p2[j] + s2[j] >= prob[k] + sim[k]:
+        e2 = embed_images(imgs2)
+        p2, s2 = score(e2, query)
+        c2 = np.where(unsafe_mask(e2, s2), -1.0, p2 + s2)
+        j = int(np.argmax(c2))
+        if c2[j] >= prob[k] + sim[k]:
             return {"t": float(ts2[j]), "prob": float(p2[j]), "sim": float(s2[j])}
     return {"t": float(ts[k]), "prob": float(prob[k]), "sim": float(sim[k])}
+
+
+def best_crop(src: str, t: float, query: str, positions: int = 5) -> float:
+    """Where to put the 9:16 window on a wide frame so the subject stays in shot (0 = left … 1 = right)."""
+    imgs, _ = grab_frames(src, [t], width=640)
+    if not imgs:
+        return 0.5
+    im = imgs[0]
+    w, h = im.size
+    cw = int(h * 9 / 16)
+    if cw >= w:
+        return 0.5
+    xs = np.linspace(0, w - cw, positions)
+    crops = [im.crop((int(x), 0, int(x) + cw, h)) for x in xs]
+    _, sim = score(embed_images(crops), query)
+    k = int(np.argmax(sim))
+    return round(float(xs[k] / (w - cw)), 3)
+
+
+def clean_shot(path: str, t: float, before: float = 2.5, after: float = 4.0, fps: float = 12.0) -> dict:
+    """The continuous shot (no internal cut) around time t in a LOCAL clip, and how much it moves.
+    B-roll must never contain a cut of its own — that is what makes a montage feel smooth."""
+    import cv2
+    cap = cv2.VideoCapture(str(path))
+    src_fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total = (cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0) / src_fps
+    a = max(0.0, t - before)
+    cap.set(cv2.CAP_PROP_POS_MSEC, a * 1000)
+    step = max(1, int(round(src_fps / fps)))
+    times, hists, grays, i = [], [], [], 0
+    while True:
+        ok = cap.grab()
+        if not ok:
+            break
+        cur = a + i / src_fps
+        if cur > t + after:
+            break
+        if i % step == 0:
+            ok, fr = cap.retrieve()
+            if not ok:
+                break
+            sm = cv2.resize(fr, (96, 54))
+            hsv = cv2.cvtColor(sm, cv2.COLOR_BGR2HSV)
+            h = cv2.calcHist([hsv], [0, 1], None, [16, 8], [0, 180, 0, 256])
+            hists.append(cv2.normalize(h, h).flatten())
+            grays.append(cv2.cvtColor(sm, cv2.COLOR_BGR2GRAY).astype(np.float32))
+            times.append(cur)
+        i += 1
+    cap.release()
+    if len(times) < 3:
+        return {"start": t, "end": t + 1.5, "motion": 1.0, "total": total}
+    cuts = [times[k] for k in range(1, len(times))
+            if cv2.compareHist(hists[k - 1], hists[k], cv2.HISTCMP_BHATTACHARYYA) > 0.35]
+    start = max([c for c in cuts if c <= t] + [times[0]])
+    end = min([c for c in cuts if c > t] + [times[-1]])
+    seg = [g for g, tt in zip(grays, times) if start <= tt <= end]
+    motion = float(np.mean([np.abs(seg[k] - seg[k - 1]).mean() for k in range(1, len(seg))])) if len(seg) > 1 else 0.0
+    return {"start": round(start + 0.08, 3), "end": round(end - 0.08, 3), "motion": round(motion, 2), "total": total}
 
 
 class VisualIndex:
@@ -159,17 +239,17 @@ class VisualIndex:
 
     def search(self, query: str, top: int = 3) -> list[dict]:
         out = []
-        t = embed_texts([f"a photo of {query}"] + NEGATIVES)
+        t = embed_texts([f"a photo of {query}"] + NEGATIVES + _competitors(query))
         for a, ts, e in self.entries:
             sims = e @ t.T
             logits = 100 * sims
             logits -= logits.max(1, keepdims=True)
             prob = np.exp(logits[:, 0]) / np.exp(logits).sum(1)
-            comb = prob + sims[:, 0]
+            comb = np.where(unsafe_mask(e, sims[:, 0]), -1.0, prob + sims[:, 0])
             if len(comb) >= 3:                                # best ~1.5 s window, not a single lucky frame
                 comb = np.convolve(comb, np.ones(3) / 3, mode="same")
             k = int(np.argmax(comb))
-            if prob[k] >= MIN_PROB and sims[k, 0] >= MIN_SIM:
+            if comb[k] > 0 and prob[k] >= MIN_PROB and sims[k, 0] >= MIN_SIM:
                 out.append({**a, "in": max(0.0, float(ts[k]) - 0.5), "match": round(float(prob[k]), 3),
                             "sim": round(float(sims[k, 0]), 3), "query": query})
         out.sort(key=lambda x: -(x["match"] + x["sim"]))

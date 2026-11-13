@@ -25,6 +25,7 @@ el la los las un una unos unas de del y en que es son por para con sin pero como
 
 ABSTRACT = set("""asking ask asked feel feels feeling know knew need needs wear bring give gave gonna wanna gotta questions
 question answer potential level care stuff thing things point reason way kind sort part fact idea talk talking said saying
+today tomorrow yesterday tonight sometimes everyday lately soon later ago
 fuck fucking shit damn bitch ass hell nobody nobody's somebody everybody anybody anyone everyone someone""".split())
 
 FILLERS = {"um", "uh", "erm", "hmm", "uhm", "euh", "eh", "ah", "mm", "mhm"}
@@ -92,8 +93,15 @@ def keywords(words: list[dict], i0: int, i1: int, top: int = 40) -> list[dict]:
             q = b[:-1] if b.endswith("s") and len(b) > 4 and b[:-1] in VISUAL else b
             best[b] = (round(score, 2), q)
     ranked = sorted(best, key=lambda w: -best[w][0])[:top]
+    # words inside a phrase ("powder" in "baby powder") are covered by the phrase, not searched alone
+    covered = set()
+    for k in range(i0, i1 + 1):
+        ph = phrase(words, k, i1)
+        if ph:
+            n = len(ph.split())
+            covered.update(range(k + 1, k + n))
     out = [{"idx": k, "word": w, "query": phrase(words, k, i1) or best[w][1], "score": best[w][0]}
-           for w in ranked for k in occ[w]]
+           for w in ranked for k in occ[w] if k not in covered]
     return out
 
 

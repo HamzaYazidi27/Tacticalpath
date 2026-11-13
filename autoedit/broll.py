@@ -194,6 +194,8 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
         log("⚠ vision requested but torch/transformers are not installed: pip install -r requirements-vision.txt")
     sources = list(cfg.broll_sources)
     lib = LocalLibrary(cfg.broll_dirs) if cfg.broll_dirs and "library" in sources else None
+    if lib and not cfg.allow_photos:
+        lib.items = [it for it in lib.items if it["kind"] == "video"]          # video-only B-roll
     url_clips = social.fetch_urls(social.read_url_list(cfg.broll_urls), cache) if cfg.broll_urls and "urls" in sources else []
     index = None
     if use_vision and ((lib and lib.items) or url_clips):
@@ -207,31 +209,44 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
             remote.append(("pexels", Pexels(cfg.pexels_key, cache)))
         elif name == "pixabay" and cfg.pixabay_key:
             remote.append(("pixabay", Pixabay(cfg.pixabay_key, cache)))
-        elif name in ("wikimedia", "youtube_cc", "archive", "openverse") and use_vision:   # needs the visual check
+        elif name == "openverse" and not cfg.allow_photos:
+            continue                                                             # photos only on request
+        elif name in ("wikimedia", "youtube_cc", "archive", "openverse", "mixkit") and use_vision:  # visual check
             cls = {"wikimedia": social.Wikimedia, "youtube_cc": social.YouTubeCC, "archive": social.InternetArchive,
-                   "openverse": social.Openverse}[name]
+                   "openverse": social.Openverse, "mixkit": social.Mixkit}[name]
             remote.append((name, cls(cache)))
     if remote:
         log("b-roll sources: " + " → ".join(["library/links" if (lib or url_clips) else ""] * bool(lib or url_clips)
                                              + [n for n, _ in remote]))
 
     def lookup(q: str) -> list[dict]:
-        if index:
+        r = _lookup(q)
+        if not r:                                   # "baby powder" → also search "powder", still verified as "baby powder"
+            head = q.split(" of ")[0].split()[-1] if " of " in q else q.split()[-1]
+            if head != q and len(head) >= 3:
+                r = [dict(a, query=q) for a in _lookup(head, verify_as=q)]
+        if not cfg.allow_photos:
+            r = [a for a in r if a.get("kind") == "video"]
+        return r
+
+    def _lookup(q: str, verify_as: str | None = None) -> list[dict]:
+        if index and not verify_as:
             r = index.search(q, top=2)
             if r:
                 return r
-        elif lib:
+        elif lib and not index:
             r = lib.find(q, limit=2)
             if r:
                 return r
         for name, prov in remote:
             try:
-                r = prov.find(q, limit=2 if name in ("pexels", "pixabay") else 1)
+                r = (prov.find(q, limit=2) if name in ("pexels", "pixabay")
+                     else prov.find(q, limit=1, verify=verify_as))
             except Exception as e:  # a provider failing must never stop the edit
                 log(f"{name}: '{q}' error ({type(e).__name__})")
                 continue
             if r and use_vision and name in ("pexels", "pixabay"):
-                r = _verify_local(r, q)
+                r = _verify_local(r, verify_as or q)
             if r:
                 return r
         return []
@@ -242,7 +257,8 @@ def resolve(queries: dict[int, str], cfg, cache: Path, src: Path, scene_list, cl
         if q not in uniq:
             uniq.append(q)
     uniq = uniq[: max(needed, 1)]
-    with ThreadPoolExecutor(max_workers=3 if remote else 1) as ex:
+    # CLIP is memory-hungry: one search at a time when vision is on (network waits are cached anyway)
+    with ThreadPoolExecutor(max_workers=1 if use_vision else (3 if remote else 1)) as ex:
         by_query = dict(zip(uniq, ex.map(lookup, uniq)))
     found = {idx: by_query[q] for idx, q in order if by_query.get(q)}
     for lst in found.values():
