@@ -16,13 +16,14 @@ class Config:
     min_dur: float = 30.0            # seconds
     max_dur: float = 60.0
     target_dur: float = 45.0
-    count: int = 0                   # Shorts per input; 0 = auto (≈ one per 75 s of talk, weak clips dropped)
+    count: int = 1                   # Shorts per input; 0 = auto (≈ one per 75 s of talk, ranked by virality)
     min_virality: int = 45           # auto mode keeps clips scoring at least this (0–100)
-    # --- retention
-    cold_open: bool = True           # play a striking line from later first (flash-forward), when one exists
-    hook_title: str = "auto"         # on-screen title for the first seconds: auto | off | your own text
+    # --- retention extras (all OFF by default = the original Center-Punch look; turn on in Settings)
+    cold_open: bool = False          # play a striking line from later first (flash-forward), when one exists
+    hook_title: str = "off"          # on-screen title for the first seconds: off | auto | your own text
     hook_secs: float = 2.8
-    loop_ending: bool = True         # ending flows back into the start (no fade-out, matched framing)
+    loop_ending: bool = False        # ending flows back into the start (no fade-out)
+    intro_punch: bool = False        # frame 1: quick punch-out on the speaker + short "hit" sound
     # --- transcription
     whisper_model: str = "small"     # tiny | base | small | medium | large-v3
     whisper_model_arabic: str = "medium"   # Arabic / Darija need a bigger model ('large-v3' = best, slower; '' = off)

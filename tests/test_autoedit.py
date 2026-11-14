@@ -275,6 +275,17 @@ TEASE = ("So I was diving off the coast near the island last summer. The water w
 
 
 class TestRetention(unittest.TestCase):
+    def test_defaults_keep_the_original_look(self):
+        cfg = Config()
+        self.assertEqual((cfg.count, cfg.hook_title, cfg.cold_open, cfg.loop_ending, cfg.intro_punch),
+                         (1, "off", False, False, False))
+        w = fake_words(TEASE)
+        clips, _ = selector.select(w, Config(min_dur=26, max_dur=40, target_dur=30, llm="off"))
+        self.assertEqual((clips[0]["hook"], clips[0]["teaser"]), ("", None))
+        p = planner.plan(w, clips[0], {}, [], Config(min_dur=26, max_dur=40, target_dur=30))
+        self.assertFalse(p["shots"][0].get("intro"))
+        self.assertEqual(p["stats"]["teaser"], 0.0)
+
     def test_virality_score_range_and_order(self):
         from autoedit import viral
         w = fake_words()
@@ -288,7 +299,7 @@ class TestRetention(unittest.TestCase):
 
     def test_cold_open_teaser_plays_first(self):
         w = fake_words(TEASE)
-        cfg = Config(min_dur=26, max_dur=40, target_dur=30, llm="off")     # forces the whole story: weak first line
+        cfg = Config(min_dur=26, max_dur=40, target_dur=30, llm="off", cold_open=True, intro_punch=True)
         clips, sents = selector.select(w, cfg)
         c = clips[0]
         self.assertIsNotNone(c["teaser"], "the shark line should be used as a cold open")
@@ -308,7 +319,7 @@ class TestRetention(unittest.TestCase):
     def test_auto_count_ranks_by_virality(self):
         w = fake_words(" ".join([TEASE, STORY.replace("Anyway, let's talk about something else.", ""), TEASE, STORY,
                                  TEASE.replace("shark", "whale")]))
-        cfg = Config(min_dur=15, max_dur=35, target_dur=25, llm="off", min_virality=0)
+        cfg = Config(min_dur=15, max_dur=35, target_dur=25, llm="off", min_virality=0, count=0, hook_title="auto")
         clips, _ = selector.select(w, cfg)
         self.assertGreaterEqual(len(clips), 2)
         totals = [c["virality"]["total"] for c in clips]

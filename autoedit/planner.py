@@ -212,7 +212,7 @@ def plan(words, clip, found, generic, cfg):
         else:
             merged.append(s)
     shots = merged
-    if shots and shots[0]["kind"] == "A":
+    if cfg.intro_punch and shots and shots[0]["kind"] == "A":
         shots[0]["intro"] = True            # frame 1: quick punch-out on the speaker (hook energy)
 
     # --- 5. asset in-points (don't reuse the same source range twice)

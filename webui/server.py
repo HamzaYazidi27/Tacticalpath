@@ -588,7 +588,7 @@ def library_delete(kind: str, name: str):
 
 # ------------------------------------------------------------------ settings
 EDITABLE = ["brand", "count", "min_dur", "max_dur", "target_dur", "whisper_model", "language", "llm",
-            "cold_open", "loop_ending", "hook_title", "min_virality", "whisper_model_arabic",
+            "cold_open", "loop_ending", "hook_title", "min_virality", "whisper_model_arabic", "intro_punch",
             "broll_sources", "photo_fallback", "music_db_under_voice", "lut_mix", "sharpen", "montage_dur"]
 
 

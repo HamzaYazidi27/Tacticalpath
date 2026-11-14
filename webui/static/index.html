@@ -559,9 +559,10 @@ async function viewSettings() {
       <label class="f">Choix de l'histoire par Claude<select id="s_llm">${[["auto", "Auto (si clé)"], ["on", "Toujours"], ["off", "Jamais"]].map(([v, l]) => `<option value="${v}" ${c.llm === v ? "selected" : ""}>${l}</option>`).join("")}</select></label>
       <label class="f">Langue<input type="text" id="s_lang" value="${esc(c.language || "")}" placeholder="auto"></label>
       <label class="f">Transcription si arabe / darija<select id="s_ar">${[["medium", "Haute (conseillé)"], ["large-v3", "Maximale (plus lent)"], ["", "Comme les autres langues"]].map(([v, l]) => `<option value="${v}" ${(c.whisper_model_arabic ?? "medium") === v ? "selected" : ""}>${l}</option>`).join("")}</select></label></div></div>
-    <div class="panel pad" style="display:grid;gap:12px"><h2>Rétention (viralité)</h2>
+    <div class="panel pad" style="display:grid;gap:12px"><h2>Rétention (options, désactivées par défaut)</h2>
       <label class="switch"><input type="checkbox" id="s_hook" ${c.hook_title !== "off" ? "checked" : ""}>Titre d'accroche à l'écran pendant les 3 premières secondes</label>
       <label class="switch"><input type="checkbox" id="s_cold" ${c.cold_open ? "checked" : ""}>Cold open : commencer par la phrase la plus forte, puis l'histoire</label>
+      <label class="switch"><input type="checkbox" id="s_intro" ${c.intro_punch ? "checked" : ""}>Punch-out + petit son sur la 1re image</label>
       <label class="switch"><input type="checkbox" id="s_loop" ${c.loop_ending ? "checked" : ""}>Fin en boucle (pas de fondu final : la vidéo repart naturellement)</label>
       <label class="f">Score minimum en mode Auto <span class="mono" id="v_mv">${c.min_virality}</span><input type="range" id="s_mv" min="0" max="80" step="5" value="${c.min_virality}"></label></div>
     <div class="panel pad" style="display:grid;gap:14px"><h2>Image et son</h2><div class="fields">
@@ -595,8 +596,8 @@ async function viewSettings() {
     const config = {brand: $("#s_brand").value.trim(), count: +$("#s_count").value, min_dur: +$("#s_min").value, max_dur: +$("#s_max").value, target_dur: +$("#s_target").value,
       whisper_model: $("#s_model").value, llm: $("#s_llm").value, language: $("#s_lang").value.trim() || null, lut_mix: +$("#s_lut").value, sharpen: +$("#s_sh").value,
       music_db_under_voice: +$("#s_mu").value, photo_fallback: $("#s_photos").checked, broll_sources: order.filter(s => on.has(s)),
-      hook_title: $("#s_hook").checked ? (c.hook_title === "off" ? "auto" : c.hook_title) : "off", cold_open: $("#s_cold").checked,
-      loop_ending: $("#s_loop").checked, min_virality: +$("#s_mv").value, whisper_model_arabic: $("#s_ar").value};
+      hook_title: $("#s_hook").checked ? (["off", "", undefined, null].includes(c.hook_title) ? "auto" : c.hook_title) : "off", cold_open: $("#s_cold").checked,
+      loop_ending: $("#s_loop").checked, intro_punch: $("#s_intro").checked, min_virality: +$("#s_mv").value, whisper_model_arabic: $("#s_ar").value};
     try { SETTINGS = await api("/api/settings", {method: "PUT", body: JSON.stringify({config, keys})}); toast("Réglages enregistrés"); viewSettings(); } catch (e) { toast(e.message, true); }
   };
 }

@@ -210,7 +210,8 @@ def render_audio(plan: dict, aroll: Path, work: Path, cfg) -> Path:
     last_a = next((s for s in reversed(shots) if s["kind"] == "A"), None)
     if last_a:
         events.append((last_a["t0"], "impact"))
-    events.append((0.0, "hit"))                                   # frame 1 grabs the ear too
+    if shots and shots[0].get("intro"):
+        events.append((0.0, "hit"))                               # frame 1 grabs the ear too
     tD = plan.get("stats", {}).get("teaser") or 0
     if tD:
         events.append((tD, "whoosh"))                             # "rewind" into the story
