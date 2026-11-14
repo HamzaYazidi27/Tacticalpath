@@ -26,14 +26,27 @@ el la los las un una unos unas de del y en que es son por para con sin pero como
 ABSTRACT = set("""asking ask asked feel feels feeling know knew need needs wear bring give gave gonna wanna gotta questions
 question answer potential level care stuff thing things point reason way kind sort part fact idea talk talking said saying
 today tomorrow yesterday tonight sometimes everyday lately soon later ago
-fuck fucking shit damn bitch ass hell nobody nobody's somebody everybody anybody anyone everyone someone""".split())
+fuck fucking shit damn bitch ass hell nobody nobody's somebody everybody anybody anyone everyone someone
+means meaning eligible problem problems part enter entered reason because example able allowed""".split())
+
+# topics that are hard to film literally → what stock libraries actually have for them
+EXPAND = {"ipo": "stock market", "ipos": "stock market", "broker": "investor", "brokers": "investor",
+          "stock": "stock chart", "stocks": "stock chart", "shares": "stock market", "share": "stock market",
+          "investor": "investor", "investors": "investor", "investment": "finance", "invest": "finance",
+          "investing": "finance", "crypto": "bitcoin", "cryptocurrency": "bitcoin", "bitcoin": "bitcoin",
+          "inflation": "supermarket", "economy": "finance", "bank": "bank", "loan": "contract", "debt": "bills",
+          "salary": "money", "tax": "calculator", "taxes": "calculator", "startup": "office", "business": "business",
+          "company": "business", "companies": "business", "profit": "money", "price": "stock chart",
+          "prices": "stock chart", "market": "stock market"}
 
 FILLERS = {"um", "uh", "erm", "hmm", "uhm", "euh", "eh", "ah", "mm", "mhm"}
 
 HOOK_WORDS = set("""never always most rarest rare deadliest deadly dangerous worst best biggest largest smallest fastest strongest
 smartest craziest crazy insane terrifying scary creepy weird strange secret nobody extinct survived impossible why how what imagine
 discovered found killed attack attacked survived escaped million billion thousand hundred jamais toujours plus pire meilleur
-dangereux mortel rare secret personne pourquoi comment incroyable découvert attaque survécu échappé million milliard""".split())
+dangereux mortel rare secret personne pourquoi comment incroyable découvert attaque survécu échappé million milliard
+علاش علاه لماذا كيفاش كيف شنو اشنو اش أخطر خطير خطيرة غلطة الغلطة خطأ الخطأ سر السر مليون مليار أكبر اكبر أحسن احسن
+أسوأ ممنوع مستحيل حتى_واحد عمرك عمري الحقيقة حقيقة صدمة الفلوس فلوس""".split())
 
 # words that make good literal B-roll (animals, nature, objects, places, actions) — boosts keyword ranking
 VISUAL = set("""
@@ -56,6 +69,39 @@ ciel nuage soleil lune étoile espace planète nuit feu ville rue pont voiture b
 """.split())
 
 
+# talk topics whose abstract words ("buy", "balance", "mistake") are better shown with on-topic footage
+TOPICS = {
+    "finance": ({"ipo", "ipos", "broker", "brokers", "stock", "stocks", "shares", "share", "market", "invest", "investing",
+                 "investment", "investor", "investors", "trading", "trader", "trade", "money", "bank", "company", "price",
+                 "prices", "profit", "dividend", "crypto", "bitcoin", "portfolio", "fund", "funds", "economy", "inflation",
+                 "salary", "loan", "debt", "tax", "taxes", "business", "dollar", "dollars", "euro", "dirham"},
+                ["stock market", "finance", "money", "stock chart", "investor", "economy", "financial chart",
+                 "cryptocurrency"]),
+    "tech": ({"ai", "software", "app", "apps", "code", "coding", "computer", "algorithm", "data", "internet", "phone",
+              "startup", "robot", "robots", "chatgpt", "programmer", "developer"},
+             ["technology", "coding", "smartphone", "computer", "robot", "data"]),
+}
+
+
+def topic_of(words: list[dict], i0: int, i1: int) -> str | None:
+    """Dominant topic of words[i0..i1] (needs at least 2 distinct topic words)."""
+    toks = {re.sub(r"'s$", "", bare(words[k]["word"])) for k in range(i0, i1 + 1)}
+    best = max(TOPICS, key=lambda t: len(toks & TOPICS[t][0]))
+    return best if len(toks & TOPICS[best][0]) >= 2 else None
+
+
+def script(words: list[dict]) -> str:
+    """'arabic' when most letters are Arabic script (captions then need an Arabic font, right-to-left)."""
+    text = "".join(w["word"] for w in words)
+    ar = sum(1 for c in text if "\u0600" <= c <= "\u06ff" or "\u0750" <= c <= "\u077f" or "\ufb50" <= c <= "\ufeff")
+    letters = sum(1 for c in text if c.isalpha())
+    return "arabic" if letters and ar / letters > 0.5 else "latin"
+
+
+def is_arabic(text: str) -> bool:
+    return any("\u0600" <= c <= "\u06ff" for c in text)
+
+
 def bare(w: str) -> str:
     return re.sub(r"[^\w'’-]", "", w).lower().replace("’", "'")
 
@@ -66,7 +112,7 @@ def sentences(words: list[dict], pause: float = 0.9) -> list[dict]:
     for i, w in enumerate(words):
         cur.append(i)
         nxt = words[i + 1]["start"] if i + 1 < len(words) else None
-        end_punct = bool(re.search(r"[.!?…]$", w["word"].strip()))
+        end_punct = bool(re.search(r"[.!?…؟۔]$", w["word"].strip()))
         if end_punct or nxt is None or (nxt - w["end"]) > pause:
             out.append({"i0": cur[0], "i1": cur[-1], "start": words[cur[0]]["start"], "end": words[cur[-1]]["end"],
                         "text": " ".join(words[k]["word"] for k in cur)})
@@ -100,7 +146,7 @@ def keywords(words: list[dict], i0: int, i1: int, top: int = 40) -> list[dict]:
         if ph:
             n = len(ph.split())
             covered.update(range(k + 1, k + n))
-    out = [{"idx": k, "word": w, "query": phrase(words, k, i1) or best[w][1], "score": best[w][0]}
+    out = [{"idx": k, "word": w, "query": phrase(words, k, i1) or EXPAND.get(w) or best[w][1], "score": best[w][0]}
            for w in ranked for k in occ[w] if k not in covered]
     return out
 
@@ -149,7 +195,7 @@ def hook_score(text: str) -> float:
     s += 1.5 * sum(1 for x in toks if x in HOOK_WORDS)
     s += 2.0 * sum(1 for p in HOOK_PHRASES if p in t)
     s += 1.5 if re.search(r"\d", t) else 0.0
-    s += 1.0 if "?" in t else 0.0
+    s += 1.0 if ("?" in t or "؟" in t) else 0.0
     s += 0.5 if 4 <= len(toks) <= 16 else -0.5
     s -= 1.5 if toks and toks[0] in {"so", "and", "but", "um", "uh", "yeah", "like", "then", "donc", "et", "mais", "euh"} else 0.0
     s -= 4.0 if is_meta(text) else 0.0

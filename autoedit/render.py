@@ -285,10 +285,21 @@ def brand_split(brand: str, explicit=None) -> tuple[str, int]:
     return brand, len(brand) // 2
 
 
+# caption fonts per script: (ASS family, ASS size, Pillow file, Pillow size, watermark file)
+FONTSET = {"latin": ("Montserrat Black", 82, "Montserrat-Black.otf", 59, "Montserrat-ExtraBold.otf"),
+           "arabic": ("Tajawal Black", 100, "Tajawal-Black.ttf", 72, "Tajawal-ExtraBold.ttf")}
+
+
+def fontset(words) -> tuple:
+    from .language import script
+    return FONTSET[script(words)]
+
+
 def write_captions(plan: dict, work: Path, cfg):
     mc = _captions_module()
     brand, split = brand_split(cfg.brand, cfg.brand_accent_split)
-    ass = mc.build(plan["words"], brand, split, "pop", True, "Montserrat Black", 82, 0.50, 6, 1.5, True,
+    family, size = fontset(plan["words"])[:2]
+    ass = mc.build(plan["words"], brand, split, "pop", True, family, size, 0.50, 6, 1.5, True,
                    bool(cfg.brand), 3, duration=plan["duration"])
     p = work / "captions.ass"
     p.write_text(ass, encoding="utf-8")
@@ -333,7 +344,8 @@ def caption_overlay(plan: dict, work: Path, cfg) -> Path:
     brand, split = brand_split(cfg.brand, cfg.brand_accent_split)
     band_h, cy = 300, 150                      # band is placed with its centre on the frame centre
     # Pillow sizes are em sizes (cap height = 0.70 em): 59 → 41 px caps, 24 → 17 px caps (= measured reference)
-    font = ImageFont.truetype(str(FONTS / "Montserrat-Black.otf"), 59)
+    _, _, ffile, fsize, _ = fontset(plan["words"])
+    font = ImageFont.truetype(str(FONTS / ffile), fsize)
     wfont = ImageFont.truetype(str(FONTS / "Montserrat-ExtraBold.otf"), 24)
     base, wbase = cy + 20.5, cy + 56 + 8.5     # baselines: caption caps centred on cy, watermark 56 px lower
     d = work / "caption_png"
@@ -392,13 +404,15 @@ def hook_card(text: str, out: Path) -> Path | None:
     one key word on a brand-green chip, soft drop shadow. Transparent PNG, full frame width."""
     from PIL import Image, ImageDraw, ImageFilter, ImageFont
     from . import viral
-    text = " ".join(text.split()).upper()
+    from .language import is_arabic
+    rtl = is_arabic(text)
+    text = " ".join(text.split()) if rtl else " ".join(text.split()).upper()
     if not text:
         return None
     hi = viral.highlight_word(text)
     toks = text.split()
-    for size in (68, 60, 52, 46):
-        font = ImageFont.truetype(str(FONTS / "Montserrat-Black.otf"), size)
+    for size in ((80, 72, 64, 56) if rtl else (68, 60, 52, 46)):
+        font = ImageFont.truetype(str(FONTS / ("Tajawal-Black.ttf" if rtl else "Montserrat-Black.otf")), size)
         meas = ImageDraw.Draw(Image.new("RGBA", (8, 8)))
         sp = meas.textlength(" ", font=font)
         lines, cur, wsum = [], [], 0.0
@@ -428,8 +442,8 @@ def hook_card(text: str, out: Path) -> Path | None:
     for box, _, _ in boxes:
         dr.rounded_rectangle(box, radius=20, fill=(255, 255, 255, 255))
     for box, ln, x in boxes:
-        base = box[1] + pad_y + size * 0.86
-        for i, t, tw in ln:
+        base = box[1] + pad_y + size * (0.80 if rtl else 0.86)
+        for i, t, tw in (reversed(ln) if rtl else ln):         # right-to-left scripts: first word on the right
             if i == hi:
                 dr.rounded_rectangle((x - 10, box[1] + 9, x + tw + 10, box[3] - 9), radius=14, fill=(25, 244, 100, 255))
                 dr.text((x, base), t, font=font, fill=(6, 38, 13, 255), anchor="ls")

@@ -332,5 +332,36 @@ class TestRetention(unittest.TestCase):
         self.assertGreater(im.getbbox()[3] - im.getbbox()[1], 60)
 
 
+class TestLanguagesAndTopics(unittest.TestCase):
+    def test_arabic_script_and_question_mark(self):
+        w = fake_words("علاش الشريكة خيبة؟ لا المشكلة هو البروكر ديالي.")
+        self.assertEqual(L.script(w), "arabic")
+        self.assertEqual(len(L.sentences(w)), 2)
+        self.assertEqual(L.script(fake_words("A shark in the ocean.")), "latin")
+
+    def test_finance_topic_replaces_abstract_words(self):
+        en = fake_words("We will not buy because the broker said the IPO is closed and the balance will fall.")
+        self.assertEqual(L.topic_of(en, 0, len(en) - 1), "finance")
+        q = selector.on_topic({1: "buy", 2: "broker's wife wanted", 3: "shark", 4: "balance"}, "finance")
+        self.assertNotIn(q[1], ("buy",))
+        self.assertEqual(q[2], L.EXPAND["broker"])
+        self.assertEqual(q[3], "shark")                       # concrete things keep their literal query
+        self.assertNotEqual(q[1], q[4])                       # the pool rotates
+
+    def test_translated_queries_map_to_spoken_words(self):
+        w = fake_words("البروكر ديالي منعني من الاي بيو")
+        en = fake_words("My broker blocked me from the IPO")
+        q = selector._translated_queries(w, en, 0, len(w) - 1)
+        self.assertTrue(q and all(0 <= k < len(w) for k in q))
+
+    def test_title_from_file_name(self):
+        from autoedit.pipeline import title_from_name
+        self.assertEqual(title_from_name(Path("9a039053-IPO_mistake_that_blocked_my_broker.mp4")),
+                         "IPO mistake that blocked my broker")
+        self.assertEqual(title_from_name(Path("My_great_story_ab12cd34.mp4")), "My great story")
+        self.assertEqual(title_from_name(Path("IMG_2024_0001.mp4")), "")
+        self.assertEqual(title_from_name(Path("input.mp4")), "")
+
+
 if __name__ == "__main__":
     unittest.main()

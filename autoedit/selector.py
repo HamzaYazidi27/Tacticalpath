@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 
 import numpy as np
 
@@ -213,7 +214,45 @@ def llm_rerank(words, sents, cfg, n):
     return non_overlapping(clips, n) or None
 
 
-def select(words, cfg, env_db=None):
+def _translated_queries(words, en_words, i0, i1):
+    """English B-roll keywords for words[i0..i1], each anchored on the spoken word closest in time."""
+    t0, t1 = words[i0]["start"] - 0.3, words[i1]["end"] + 0.3
+    idx = [k for k, w in enumerate(en_words) if t0 <= w["start"] <= t1]
+    if not idx:
+        return {}
+    q = {}
+    for kw in L.keywords(en_words, idx[0], idx[-1]):
+        t = en_words[kw["idx"]]["start"]
+        k = min(range(i0, i1 + 1), key=lambda j: abs(words[j]["start"] - t))
+        q.setdefault(k, kw["query"])
+    return q
+
+
+def on_topic(queries: dict, topic: str | None) -> dict:
+    """In a talk about e.g. finance, abstract keywords get on-topic footage instead of a literal mismatch
+    ('buy' → not someone buying diapers; 'balance' → not a gymnast). Concrete things keep their query."""
+    if not topic:
+        return queries
+    words, pool = L.TOPICS[topic]
+    concrete = set(L.EXPAND.values())
+    out, n = {}, 0
+    for k in sorted(queries):
+        q = queries[k]
+        toks = [re.sub(r"'s$", "", L.bare(x)) for x in q.split()]
+        hit = next((L.EXPAND[t] for t in toks if t in L.EXPAND), None)
+        if q in concrete:
+            out[k] = q
+        elif hit:
+            out[k] = hit                    # "broker's wife wanted" → the broker's footage
+        elif any(t in L.VISUAL or t.rstrip("s") in L.VISUAL for t in toks):
+            out[k] = q
+        else:
+            out[k] = pool[n % len(pool)]
+            n += 1
+    return out
+
+
+def select(words, cfg, env_db=None, en_words=None, file_title=""):
     sents = L.sentences(words)
     auto = cfg.count <= 0
     n = viral.auto_count(est_out(words, 0, len(words) - 1, cfg.gap_trim), cfg) if auto else cfg.count
@@ -240,7 +279,10 @@ def select(words, cfg, env_db=None):
         elif cfg.hook_title not in ("", "auto"):
             c["hook"] = cfg.hook_title
         elif not c.get("hook"):
-            c["hook"] = viral.hook_text(sents, c["s0"], c["s1"], c["teaser"])
+            # a short line from the talk, else the creator's own title (file name), else a longer line
+            c["hook"] = (viral.hook_text(sents, c["s0"], c["s1"], c["teaser"], max_words=8)
+                         or (file_title if len(clips) == 1 else "")
+                         or viral.hook_text(sents, c["s0"], c["s1"], c["teaser"], max_words=12))
     clips.sort(key=lambda c: -c["virality"]["total"])           # Short 1 = the most promising
     if auto and len(clips) > 1:
         keep = [c for c in clips if c["virality"]["total"] >= cfg.min_virality]
@@ -250,7 +292,19 @@ def select(words, cfg, env_db=None):
     for c in clips:  # fill keyword queries for anything Claude didn't cover
         i0, i1 = sents[c["s0"]]["i0"], sents[c["s1"]]["i1"]
         c["i0"], c["i1"] = i0, i1
-        for k in L.keywords(words, i0, i1):
-            c["queries"].setdefault(k["idx"], k["query"])
+        if en_words and c.get("source") != "claude":
+            for k, q in _translated_queries(words, en_words, i0, i1).items():
+                c["queries"].setdefault(k, q)
+            t0, t1 = words[i0]["start"] - 0.3, words[i1]["end"] + 0.3
+            ix = [k for k, w in enumerate(en_words) if t0 <= w["start"] <= t1]
+            topic = L.topic_of(en_words, ix[0], ix[-1]) if ix else None
+        else:
+            for k in L.keywords(words, i0, i1):
+                c["queries"].setdefault(k["idx"], k["query"])
+            topic = L.topic_of(words, i0, i1)
+        if c.get("source") != "claude":
+            c["queries"] = on_topic(c["queries"], topic)
+            if topic:
+                log(f"topic: {topic} → abstract words illustrated with on-topic footage")
         c["queries"] = {int(k): v for k, v in c["queries"].items()}
     return clips, sents

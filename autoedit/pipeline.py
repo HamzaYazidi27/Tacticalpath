@@ -15,6 +15,18 @@ def _slug(name: str) -> str:
     return re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:60].strip("_") or "video"
 
 
+def title_from_name(src: Path) -> str:
+    """'9a039053-IPO_mistake_that_blocked_my_broker.mp4' → 'IPO mistake that blocked my broker' (a creator's
+    file name is often the video's title — a usable on-screen hook when the transcript gives none)."""
+    s = re.sub(r"^[0-9a-f]{6,}[-_]", "", src.stem)
+    s = re.sub(r"[-_][0-9a-f]{8}$", "", s)
+    s = re.sub(r"[-_ ]\d{1,3}$", "", s)
+    s = re.sub(r"[_]+", " ", s).strip()
+    words = [w for w in s.split() if re.search(r"[^\W\d_]", w)]
+    generic = re.match(r"^(img|vid|mov|dsc|pxl|gopr|video|input|output|clip|final|export|untitled|copy)\b", s, re.I)
+    return s if len(words) >= 3 and not generic else ""
+
+
 def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bool = False) -> list[Path]:
     check_tools()
     src = src.resolve()
@@ -30,8 +42,16 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
 
     words = []
     if info["has_audio"]:
-        tr = transcribe(src, work, cfg.whisper_model, cfg.language)
+        upgrade = {"ar": cfg.whisper_model_arabic} if cfg.whisper_model_arabic else None
+        tr = transcribe(src, work, cfg.whisper_model, cfg.language, upgrade=upgrade)
         words = tr["words"]
+        en_words = None
+        if words and tr.get("language") not in (None, "en"):
+            try:                        # stock libraries are searched in English
+                en_words = transcribe(src, work, tr.get("model") or cfg.whisper_model, tr["language"],
+                                      task="translate")["words"]
+            except Exception as e:      # pragma: no cover - keep editing with original-language keywords
+                log(f"translation for B-roll failed ({e}) — searching with the original words")
     wpm = len(words) / max(info["duration"], 1) * 60
     scenes = analyze.scenes(src, work)
 
@@ -47,7 +67,7 @@ def process(src: Path, out_root: Path, cfg, keep_work: bool = False, dry_run: bo
             cfg = dataclasses.replace(cfg, min_dur=max(3.0, total * 0.85), target_dur=total,
                                       max_dur=max(cfg.max_dur, total + 1), count=1)
             log(f"input speech is only {total:.1f}s (shorter than the minimum): using all of it")
-        clips, _ = selector.select(words, cfg, env)
+        clips, _ = selector.select(words, cfg, env, en_words=en_words, file_title=title_from_name(src))
         plans = []
         for n, clip in enumerate(clips, 1):
             log(f"clip {n}: {clip['start']:.1f}–{clip['end']:.1f}s ({clip['dur']:.0f}s, {clip['source']}) «{clip['title'][:60]}»")

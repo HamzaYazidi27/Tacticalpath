@@ -174,6 +174,13 @@ Les plateformes poussent les Shorts que les gens regardent jusqu'au bout et revo
 - **Une image 1 qui accroche** : un léger punch-out sur la personne qui parle, avec un « hit » sonore.
 - **Une fin en boucle** : pas de fondu final sur la musique, et un dernier plan serré qui s'enchaîne naturellement avec le premier. La vidéo repart sans « fin ». Pour revenir à une fin classique : `--no-loop`.
 
+## Vidéos en arabe / darija (et autres langues)
+
+- **Transcription plus précise** : dès que l'arabe est détecté, le système passe au modèle Whisper `medium`. Vous pouvez choisir `large-v3` (le meilleur, plus lent) dans Réglages → « Transcription si arabe / darija ».
+- **Sous-titres arabes** en Tajawal Black (police libre, OFL), de droite à gauche, avec le même style vert centré.
+- **B-roll pertinent** : la parole est aussi traduite en anglais (par Whisper) pour chercher dans les banques de vidéos. Le système repère aussi le sujet de la vidéo (finance, tech…). Les mots abstraits (« acheter », « erreur »…) sont alors illustrés par des plans du sujet (bourse, graphiques, billets) plutôt que par un contresens. Par exemple, « acheter » ne donnera pas quelqu'un qui achète des couches au supermarché.
+- **Titre d'accroche** : si la parole ne donne pas de phrase courte, le titre vient du nom du fichier (par exemple `IPO_mistake_that_blocked_my_broker.mp4` donne « IPO mistake that blocked my broker »). Vous pouvez toujours le changer dans le Studio.
+
 ## Ce que vous recevez (dans `outbox/<nom>/`)
 
 | Fichier | Contenu |

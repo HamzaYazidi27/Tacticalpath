@@ -25,6 +25,7 @@ class Config:
     loop_ending: bool = True         # ending flows back into the start (no fade-out, matched framing)
     # --- transcription
     whisper_model: str = "small"     # tiny | base | small | medium | large-v3
+    whisper_model_arabic: str = "medium"   # Arabic / Darija need a bigger model ('large-v3' = best, slower; '' = off)
     language: str | None = None      # None = auto-detect
     # --- intelligence (optional Claude)
     llm: str = "auto"                # auto | on | off
